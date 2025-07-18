@@ -1,0 +1,164 @@
+CREATE 
+        (CSP:CSP {component_id:'1', name:'Cloud Service Provider', type:'CSP', application:'KubeEdge'}),
+
+        (CSPRouter:HW:Router {component_id:'2', name:'CSP Router', type:'HW.Router', application:'KubeEdge', access:'public'}),
+        (CSPLAN:Network:LAN {component_id:'3', name:'CSP Network', type:'Network', application:'KubeEdge', access:'public', parameters: '{"ip":"192.168.60.1", "ip_range":"192.168.60.0/24"}'}),
+
+        (Wan:Network:WAN {component_id:'4', name:'WAN', type:'Internet', application:'KubeEdge', access:'public'}),
+
+        (KMNet:Network:LAN {component_id:'5', name:'Kubernetes Network', type:'Network.Virtual', application:'KubeEdge', access:'public', parameters: '{"ip":"10.244.0.1", "ip_range":"10.244.0.0/24"}'}),
+        
+        (EdgeRouter:HW:Router {component_id:'6', name:'Edge Router', type:'HW.Router', application:'KubeEdge', access:'public'}),
+        (EdgeNet:Network:LAN {component_id:'7', name:'Edge LAN', type:'Network.LAN', application:'KubeEdge', access:'public', parameters: '{"ip":"192.168.70.1", "ip_range":"192.168.70.0/24"}'}),
+        
+        (Admin:Human {component_id:'8', name:'Administrator', type:'Human', application:'KubeEdge'}),
+        (User:Human {component_id:'9', name:'End User', type:'Human', application:'KubeEdge'}),
+
+
+        (KubernetesMasterVM:Service:VM {component_id:'10', name:'Kubernetes Master VM', type:'Service.VM', application:'KubeEdge', access:'public', parameters: '{"ip":"192.168.60.2"}'}),
+        (OS_KubeMaster:Service:OS {component_id:'11', name:'Kubernetes Master OS', type:'Service.OS', application:'KubeEdge', access:'public'}),
+        (DockerKM:Service:ContainerRuntime {component_id:'12', name:'Kubernetes Master Docker', type:'Service.ContainerRuntime', application:'KubeEdge', access:'public'}),
+        
+        (ContainerKubeAPIServer:Service:Container {component_id:'13', name:'Kube API Server Container', type:'Service.Container', application:'KubeEdge', access:'public', parameters: '{"ip":"10.244.0.2"}'}),
+        (OS_KubeAPIServer:Service:OS {component_id:'14', name:'Kube API Server OS', type:'Service.OS', application:'KubeEdge', access:'public'}),
+        (KubeAPIServer:Service {component_id:'15', name:'Kube-API Server', type:'Service.API', application:'KubeEdge', access:'public'}),
+        
+        (ContainerKubeControllerManager:Service:Container {component_id:'16', name:'Kube Controller Manager Container', type:'Service.Container', application:'KubeEdge', access:'public', parameters: '{"ip":"10.244.0.3"}'}),
+        (OS_KubeControllerManager:Service:OS {component_id:'17', name:'Kube Controller Manager OS', type:'Service.OS', application:'KubeEdge', access:'public'}),
+        (KubeControllerManager:Service {component_id:'18', name:'Kube Controller Manager', type:'Service.App', application:'KubeEdge', access:'public'}),
+        
+        (ContainerKubeScheduler:Service:Container {component_id:'19', name:'Kube Scheduler Container', type:'Service.Container', application:'KubeEdge', access:'public', parameters: '{"ip":"10.244.0.4"}'}),
+        (OS_KubeScheduler:Service:OS {component_id:'20', name:'Kube Scheduler OS', type:'Service.OS', application:'KubeEdge', access:'public'}),
+        (KubeScheduler:Service {component_id:'21', name:'Kube Scheduler', type:'Service.App', application:'KubeEdge', access:'public'}),
+        
+        (ContainerETCD:Service:Container {component_id:'22', name:'ETCD Container', type:'Service.Container', application:'KubeEdge', access:'public', parameters: '{"ip":"10.244.0.5"}'}),
+        (OS_ETCD:Service:OS {component_id:'23', name:'ETCD OS', type:'Service.OS', application:'KubeEdge', access:'public'}),
+        (ETCD:Service {component_id:'24', name:'ETCD', type:'Service.NoSQLDB', application:'KubeEdge', access:'public'}),
+        
+        (ContainerDashboard:Service:Container {component_id:'25', name:'Dashboard Container', type:'Service.Container', application:'KubeEdge', access:'public', parameters: '{"ip":"10.244.0.6"}'}),
+        (OS_Dashboard:Service:OS {component_id:'26', name:'Dashboard OS', type:'Service.OS', application:'KubeEdge', access:'public'}),
+        (KMDashboard:Service:Web {component_id:'27', name:'Kubernetes Dashboard', type:'Service.Web', application:'KubeEdge', access:'public'}),
+        
+        (ContainerCloudCore:Service:Container {component_id:'28', name:'CloudCore Container', type:'Service.Container', application:'KubeEdge', access:'public', parameters: '{"ip":"10.244.0.7"}'}),
+        (OS_CloudCore:Service:OS {component_id:'29', name:'CloudCore OS', type:'Service.OS', application:'KubeEdge', access:'public'}),
+        (CloudCore:Service {component_id:'30', name:'CloudCore', type:'Service.App', application:'KubeEdge', access:'public'}),
+        
+        (ContainerWebPlayerController:Service:Container {component_id:'31', name:'Web Player Controller Container', type:'Service.Container', application:'KubeEdge', access:'public', parameters: '{"ip":"10.244.0.8"}'}),
+        (OS_WebPlayerController:Service:OS {component_id:'32', name:'Web Player Controller OS', type:'Service.OS', application:'KubeEdge', access:'public'}),
+        (WebPlayerController:Service:Web {component_id:'33', name:'Web Player Controller', type:'Service.Web', application:'KubeEdge', access:'public'}),
+
+        (ContainerCalicoCNI:Service:Container {component_id:'34', name:'Calico CNI Container', type:'Service.Container', application:'KubeEdge', access:'public', parameters: '{"ip":"10.244.0.9"}'}),
+        (OS_CalicoCNI:Service:OS {component_id:'35', name:'Calico CNI OS', type:'Service.OS', application:'KubeEdge', access:'public'}),
+        (CalicoCNI:Service {component_id:'36', name:'Calico CNI', type:'Service.App', application:'KubeEdge', access:'public'}),
+
+        (ContainerKubeProxy:Service:Container {component_id:'37', name:'KubeProxy Container', type:'Service.Container', application:'KubeEdge', access:'public', parameters: '{"ip":"10.244.0.10"}'}),
+        (OS_KubeProxy:Service:OS {component_id:'38', name:'KubeProxy OS', type:'Service.OS', application:'KubeEdge', access:'public'}),
+        (KubeProxy:Service {component_id:'39', name:'KubeProxy', type:'Service.App', application:'KubeEdge', access:'public'}),
+        
+        (EdgeNode:HW:Server {component_id:'40', name:'Edge Node', type:'HW.Server', application:'KubeEdge', access:'public', parameters: '{"ip":"192.168.70.2"}'}),
+        (OS_EdgeNode:Service:OS {component_id:'41', name:'Edge Node OS', type:'Service.OS', application:'KubeEdge', access:'public'}),
+        (DockerEdge:Service:ContainerRuntime {component_id:'42', name:'Edge Node Docker', type:'Service.ContainerRuntime', application:'KubeEdge', access:'public'}),
+        (EdgeCore:Service {component_id:'43', name:'EdgeCore', type:'Service.App', application:'KubeEdge', access:'public'}),
+        (Mosquitto:Service:MQTTBroker {component_id:'44', name:'Mosquitto', type:'Service.MQTTBroker', application:'KubeEdge', access:'public'}),
+        (EdgeDatastore:Service:DB {component_id:'45', name:'Edge Datastore', type:'Service.DB', application:'KubeEdge', access:'public'}),
+
+
+        (SmartSpeakerSOC:HW:SOC {component_id:'46', name:'Smart Speaker', type:'HW.SOC', application:'KubeEdge', access:'public', parameters: '{"ip":"192.168.70.3"}'}),
+        (OS_SmartSpeaker:Service:OS {component_id:'47', name:'Smart Speaker OS', type:'Service.OS', application:'KubeEdge', access:'public'}),
+        (PiPlayerApp:Service {component_id:'48', name:'Pi-Player App', type:'Service.App', application:'KubeEdge', access:'public'}),
+
+
+        (CSP)-[:provides]->(KubernetesMasterVM),
+        (CSP)-[:provides]->(CSPRouter),
+        (CSPRouter)-[:connects]->(CSPLAN),
+
+        (KubernetesMasterVM)-[:hosts]->(OS_KubeMaster),
+        (OS_KubeMaster)-[:hosts]->(DockerKM),
+        (OS_KubeMaster)-[:hosts]->(KMNet),
+
+        (DockerKM)-[:hosts]->(ContainerKubeAPIServer),
+        (ContainerKubeAPIServer)-[:hosts]->(OS_KubeAPIServer),
+        (OS_KubeAPIServer)-[:hosts]->(KubeAPIServer),
+
+        (DockerKM)-[:hosts]->(ContainerKubeControllerManager),
+        (ContainerKubeControllerManager)-[:hosts]->(OS_KubeControllerManager),
+        (OS_KubeControllerManager)-[:hosts]->(KubeControllerManager),
+
+        (DockerKM)-[:hosts]->(ContainerKubeScheduler),
+        (ContainerKubeScheduler)-[:hosts]->(OS_KubeScheduler),
+        (OS_KubeScheduler)-[:hosts]->(KubeScheduler),
+        
+        (DockerKM)-[:hosts]->(ContainerETCD),
+        (ContainerETCD)-[:hosts]->(OS_ETCD),
+        (OS_ETCD)-[:hosts]->(ETCD),
+        
+        (DockerKM)-[:hosts]->(ContainerDashboard),
+        (ContainerDashboard)-[:hosts]->(OS_Dashboard),
+        (OS_Dashboard)-[:hosts]->(KMDashboard),
+
+        (DockerKM)-[:hosts]->(ContainerCloudCore),
+        (ContainerCloudCore)-[:hosts]->(OS_CloudCore),
+        (OS_CloudCore)-[:hosts]->(CloudCore),
+
+        (DockerKM)-[:hosts]->(ContainerWebPlayerController),
+        (ContainerWebPlayerController)-[:hosts]->(OS_WebPlayerController),
+        (OS_WebPlayerController)-[:hosts]->(WebPlayerController),
+
+        (DockerKM)-[:hosts]->(ContainerCalicoCNI),
+        (ContainerCalicoCNI)-[:hosts]->(OS_CalicoCNI),
+        (OS_CalicoCNI)-[:hosts]->(CalicoCNI),
+
+        (DockerKM)-[:hosts]->(ContainerKubeProxy),
+        (ContainerKubeProxy)-[:hosts]->(OS_KubeProxy),
+        (OS_KubeProxy)-[:hosts]->(KubeProxy),
+
+        (EdgeNode)-[:hosts]->(OS_EdgeNode),
+        (OS_EdgeNode)-[:hosts]->(DockerEdge),
+        (OS_EdgeNode)-[:hosts]->(EdgeCore),
+        (OS_EdgeNode)-[:hosts]->(Mosquitto),
+        (OS_EdgeNode)-[:hosts]->(EdgeDatastore),
+
+
+        (SmartSpeakerSOC)-[:hosts]->(OS_SmartSpeaker),
+        (OS_SmartSpeaker)-[:hosts]->(PiPlayerApp),
+
+        (Wan)-[:connects]->(CSPRouter),
+        (Wan)-[:connects]->(EdgeRouter),
+        (CSPLAN)-[:connects]->(KubernetesMasterVM),
+
+        (KMNet)-[:connects]->(ContainerKubeAPIServer),
+        (KMNet)-[:connects]->(ContainerKubeControllerManager),
+        (KMNet)-[:connects]->(ContainerKubeScheduler),
+        (KMNet)-[:connects]->(ContainerETCD),
+        (KMNet)-[:connects]->(ContainerDashboard),
+        (KMNet)-[:connects]->(ContainerCloudCore),
+        (KMNet)-[:connects]->(ContainerWebPlayerController),
+        (KMNet)-[:connects]->(ContainerCalicoCNI),
+        (KMNet)-[:connects]->(ContainerKubeProxy),
+
+        (EdgeRouter)-[:connects]->(EdgeNet),
+        (EdgeNet)-[:connects]->(EdgeNode),
+        (EdgeNet)-[:connects]->(SmartSpeakerSOC),
+
+        (KubeAPIServer)-[:uses]->(ETCD),
+        (KubeControllerManager)-[:uses]->(KubeAPIServer),
+        (KubeScheduler)-[:uses]->(KubeAPIServer),
+        (KMDashboard)-[:uses]->(KubeAPIServer),
+        (CalicoCNI)-[:uses]->(KubeAPIServer),
+        (KubeProxy)-[:uses]->(KubeAPIServer),
+
+        (CloudCore)-[:uses]->(KubeAPIServer),
+
+        (WebPlayerController)-[:uses]->(KubeAPIServer),
+
+        (CloudCore)-[:uses]->(EdgeCore),
+
+        (EdgeCore)-[:uses]->(Mosquitto),
+        (EdgeCore)-[:uses]->(DockerEdge),
+        (EdgeCore)-[:uses]->(EdgeDatastore),
+
+        (EdgeCore)-[:uses]->(PiPlayerApp),
+        (PiPlayerApp)-[:uses]->(Mosquitto),
+
+        (Admin)-[:uses]->(KMDashboard),
+        (User)-[:uses]->(WebPlayerController)
