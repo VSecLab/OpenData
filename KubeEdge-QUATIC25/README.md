@@ -42,3 +42,171 @@ The following diagram provides a detailed view of the distribution of threats ac
 The following diagram shows the occurrences of threats in the KubeEdge Music Player application, categorized by the STRIDE model.
 
 ![](ThreatOccurrencesWithSTRIDE.png)
+
+## Risk Analysis - Threat Agent Selection
+
+### Threat Agent Questionnaire
+
+1. Are there someone who can gain an advantage implementing a cyber threat against your system?
+   - [x] Yes
+   - [ ] No, the threats that apply to the system are related only to non-hostile situation
+2. Do you trust all employees and do you assume that they are not a possible Threat agent?
+   - [ ] Consider as "trusted" the employees
+   - [x] Consider all threat agents
+3. What are the goals of the attackers that represent the most threat to you?
+   - [x] Make a replica of the asset so the agent has simultaneous access to it.
+   - [x] Denial of the assets
+   - [ ] The agent does not have a rational plan, or may make a choice opportunistically at the time of attack.
+   - [ ] Destroy the asset, which becomes worthless to either Intel or the agent.
+   - [ ] Damage the asset, which remains in owner's possession but has only limited functionality or value.
+   - [x] Gain possession of the asset
+4. What could be the expected results of a possible attacker in the phases of a possible attack on the software system?
+   - [x] Theft
+   - [x] Cause harm
+   - [ ] Embarassment
+   - [ ] Tech Advantage
+   - [ ] Business Advantage
+
+### Threat Agent Results
+
+#### Cyber Vandal
+
+| Field                          | Value                                                                 |
+|-------------------------------|-----------------------------------------------------------------------|
+| **Description**               | Derives thrills from intrusion or destruction of property, without strong agenda |
+| **Threat Agent Common Actions** | Network/computing disruption, web hijacking, malware                   |
+| **Intent**                    | Hostile                                                               |
+| **Access**                    | External                                                              |
+| **Visibility**                | Covert                                                                |
+| **Resources**                 | Contest                                                               |
+| **Skills**                    | Operational                                                           |
+| **Limits**                    | Extra-legal minor                                                     |
+| **Objectives**                | All                                                                   |
+| **Outcome**                   | DamageOutcome                                                         |
+| **Category Rating**           | **Low**                                                               |
+
+---
+
+#### Thief
+
+| Field                          | Value                                                                 |
+|-------------------------------|-----------------------------------------------------------------------|
+| **Description**               | Opportunistic individual with simple profit motive                    |
+| **Threat Agent Common Actions** | Theft of hardware goods or IP, PII, or business data                  |
+| **Intent**                    | Hostile                                                               |
+| **Access**                    | Internal                                                              |
+| **Visibility**                | Clandestine                                                           |
+| **Resources**                 | Individual                                                            |
+| **Skills**                    | nan                                                                   |
+| **Limits**                    | Extra-legal minor                                                     |
+| **Objectives**                | Take                                                                  |
+| **Outcome**                   | Acquisition/Theft                                                     |
+| **Category Rating**           | **High**                                                              |
+
+---
+
+#### Government Cyberwarrior
+
+| Field                          | Value                                                                 |
+|-------------------------------|-----------------------------------------------------------------------|
+| **Description**               | State-sponsored attacker with significant resources to affect major disruption on national scale |
+| **Threat Agent Common Actions** | Organizational, infrastructural, and physical business disruption via network/computing disruption, web hijacking, malware |
+| **Intent**                    | Hostile                                                               |
+| **Access**                    | External                                                              |
+| **Visibility**                | Multiple                                                              |
+| **Resources**                 | Government                                                            |
+| **Skills**                    | Adept                                                                 |
+| **Limits**                    | Extra-legal major                                                     |
+| **Objectives**                | Destroy, Damage                                                       |
+| **Outcome**                   | DamageOutcome, Embarassment                                           |
+| **Category Rating**           | **Medium**                                                            |
+
+---
+
+#### Sensationalist
+
+| Field                          | Value                                                                 |
+|-------------------------------|-----------------------------------------------------------------------|
+| **Description**               | Attention-grabber who may employ any method for notoriety             |
+| **Threat Agent Common Actions** | Public announcements for PR crises, theft of business data           |
+| **Intent**                    | Hostile                                                               |
+| **Access**                    | External                                                              |
+| **Visibility**                | Overt                                                                 |
+| **Resources**                 | Club                                                                  |
+| **Skills**                    | Minimal                                                               |
+| **Limits**                    | Extra-legal minor                                                     |
+| **Objectives**                | All                                                                   |
+| **Outcome**                   | DamageOutcome, Embarassment                                           |
+| **Category Rating**           | **Low**                                                               |
+
+---
+
+#### Internal Spy
+
+| Field                          | Value                                                                 |
+|-------------------------------|-----------------------------------------------------------------------|
+| **Description**               | Professional data gatherer as a trusted insider                       |
+| **Threat Agent Common Actions** | Theft of IP, PII, or business data                                   |
+| **Intent**                    | Hostile                                                               |
+| **Access**                    | External                                                              |
+| **Visibility**                | Clandestine                                                           |
+| **Resources**                 | Organization                                                          |
+| **Skills**                    | Adept                                                                 |
+| **Limits**                    | Extra-legal minor                                                     |
+| **Objectives**                | Copy                                                                  |
+| **Outcome**                   | Acquisition/Theft, Tech Advantage                                     |
+| **Category Rating**           | **High**                                                              |
+
+---
+
+#### Terrorist
+
+| Field                          | Value                                                                 |
+|-------------------------------|-----------------------------------------------------------------------|
+| **Description**               | Person who relies on the use of violence to support socio-political agenda |
+| **Threat Agent Common Actions** | Violence, property destruction, physical business disruption         |
+| **Intent**                    | Hostile                                                               |
+| **Access**                    | External                                                              |
+| **Visibility**                | Covert                                                                |
+| **Resources**                 | Organization                                                          |
+| **Skills**                    | Adept                                                                 |
+| **Limits**                    | Extra-legal major                                                     |
+| **Objectives**                | Destroy, Damage, Take                                                 |
+| **Outcome**                   | DamageOutcome                                                         |
+| **Category Rating**           | **Medium**                                                            |
+
+---
+
+#### Irrational Individual
+
+| Field                          | Value                                                                 |
+|-------------------------------|-----------------------------------------------------------------------|
+| **Description**               | Someone with illogical purpose and irrational behavior                |
+| **Threat Agent Common Actions** | Personal violence causing physical business disruption               |
+| **Intent**                    | Hostile                                                               |
+| **Access**                    | External                                                              |
+| **Visibility**                | Multiple                                                              |
+| **Resources**                 | Individual                                                            |
+| **Skills**                    | nan                                                                   |
+| **Limits**                    | Extra-legal major                                                     |
+| **Objectives**                | All                                                                   |
+| **Outcome**                   | DamageOutcome, Embarassment                                           |
+| **Category Rating**           | **Low**                                                               |
+
+---
+
+#### Mobster
+
+| Field                          | Value                                                                 |
+|-------------------------------|-----------------------------------------------------------------------|
+| **Description**               | Manager of organized crime group with significant resources           |
+| **Threat Agent Common Actions** | Theft of IP, PII, or business data, violence                         |
+| **Intent**                    | Hostile                                                               |
+| **Access**                    | External                                                              |
+| **Visibility**                | Covert                                                                |
+| **Resources**                 | Organization                                                          |
+| **Skills**                    | Adept                                                                 |
+| **Limits**                    | Extra-legal major                                                     |
+| **Objectives**                | Take                                                                  |
+| **Outcome**                   | Acquisition/Theft                                                     |
+| **Category Rating**           | **High**                                                              |
