@@ -1,6 +1,5 @@
 # On the Edge of Security: Threat-Driven Pentest of KubeEdge with ESSecA
 
-## Overview
 This repository contains the resources for the peper "On the Edge of Security: Threat-Driven Pentest of KubeEdge with ESSecA".
 
 ## Authors
@@ -16,6 +15,9 @@ The growing adoption of edge computing has introduced new architectural paradigm
 - `KubeEdge_MusicPlayer_QUATIC.macm`: This file contains the formal model of the KubeEdge Music Player application, created using the MACM (Multi-purpose Application Composition Model) formalism. MACM utilizes the Cypher query language to describe the system, enabling comprehensive security analysis.
 - `KubeEdge Player (QUATIC)_threat_model.xlsx`: This spreadsheet documents the threat model developed during the threat modeling phase.
 - `KubeEdge Player (QUATIC)_attack_plan-2.xlsx`: The attack plan used in the pentest.
+- `STRIDE_Occurrences.png`: This diagram illustrates the occurrences of threats for each STRIDE category in the KubeEdge Music Player application.
+- `ThreatPerAssetTypeQUATIC.png`: This diagram provides a detailed view of the distribution of threats across the asset types in the KubeEdge Music Player application.
+- `ThreatOccurrencesWithSTRIDE.png`: This diagram shows the occurrences of threats in the KubeEdge Music Player application, categorized by the STRIDE model.
 
 ## Testbed Configuration
 
