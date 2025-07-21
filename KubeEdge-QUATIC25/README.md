@@ -1,0 +1,31 @@
+# On the Edge of Security: Threat-Driven Pentest of KubeEdge with ESSecA
+
+## Overview
+This repository contains the resources for the peper "On the Edge of Security: Threat-Driven Pentest of KubeEdge with ESSecA".
+
+## Authors
+- [Felice Moretta](felice.moretta@unicampania.it)
+- [Daniele Granata](daniele.granata@uniparthenope.it)
+- [Massimiliano Rak](massimiliano.rak@unina.it)
+
+## Abstract
+
+The growing adoption of edge computing has introduced new architectural paradigms and increased complexity in IoT ecosystems. This shift, while beneficial in terms of latency, bandwidth, and resilience, also brings unresolved security challenges—particularly in platforms like KubeEdge, which extend Kubernetes functionalities to the edge. In this paper, we present a structured and automated security assessment of a real-world KubeEdge deployment by applying an expert system-based methodology (ESSecA). ESSecA adopts a threat-driven, model-based, and knowledge-supported approach to generate threat models, perform risk analysis, and plan penetration tests. We model the system using the MACM formalism, capturing both components and their interactions. The assessment reveals several security issues, especially concerning the MQTT-based communication between edge and IoT devices. We executed a set of penetration tests, including message tampering and unauthorized device control, exploiting insecure configurations in the MQTT broker. The identified vulnerabilities confirm the need for systematic security evaluations in edge environments. We propose countermeasures and outline future work aimed at enhancing the formal model to support dynamic system configurations and automated mitigation selection. To the best of our knowledge, there is no report in the literature regarding a comprehensive security assessment of a KubeEdge deployment. This work aims to fill that gap by providing the first such analysis.
+
+## Contents
+- `KubeEdge_MusicPlayer_QUATIC.macm`: This file contains the formal model of the KubeEdge Music Player application, created using the MACM (Multi-purpose Application Composition Model) formalism. MACM utilizes the Cypher query language to describe the system, enabling comprehensive security analysis.
+- `KubeEdge Player (QUATIC)_threat_model.xlsx`: This spreadsheet documents the threat model developed during the threat modeling phase.
+- `KubeEdge Player (QUATIC)_attack_plan-2.xlsx`: The attack plan used in the pentest.
+
+## Testbed Configuration
+
+The environment used for this case study reflects the official demo setup, available at [KubeEdge Pi-Player App Demo](https://github.com/kubeedge/examples/blob/master/web-demo/).
+
+| Parameter                | Cloud Node          | Edge Node                                                                                             | Note |
+| ------------------------ | ------------------- | ----------------------------------------------------------------------------------------------------- | ---- |
+| Operating System         | Ubuntu 24.04.1 LTS  | Ubuntu 24.04.1 LTS                                                                                    | -    |
+| Kubernetes Version       | v1.23.10            | -                                                                                                     | -    |
+| KubeEdge Version         | v1.17.0             | v1.17.0                                                                                               | -    |
+| Docker Version           | 24.0.6              | 27.5.1                                                                                                | -    |
+| KubeSphere               | v3.4.1              | -                                                                                                     | -    |
+| MQTT Broker (Mosquitto)  | -                   | v2.0.18                                                                                               | `anonymous-access` enabled, no TLS, no ACLs, manually installed, `externalMqttMode` mode |
