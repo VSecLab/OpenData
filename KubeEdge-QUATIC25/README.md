@@ -1,6 +1,6 @@
 # On the Edge of Security: Threat-Driven Pentest of KubeEdge with ESSecA
 
-This repository contains the resources for the peper "On the Edge of Security: Threat-Driven Pentest of KubeEdge with ESSecA". The tool used to generate the Threat Model, the Risk Analysis, and the Attack Plan is developed by our team and is available at [Pennet](https://pennet.vseclab.it/).
+This repository contains the resources for the paper "On the Edge of Security: Threat-Driven Pentest of KubeEdge with ESSecA". The tool used to generate the Threat Model, the Risk Analysis, and the Attack Plan is developed by our team and is available at [Pennet](https://pennet.vseclab.it/).
 
 ## Authors
 - [Felice Moretta](felice.moretta@unicampania.it)

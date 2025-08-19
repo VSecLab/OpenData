@@ -1,1 +1,1 @@
-# Open Data Repository for the VSEC team
+# Open Data Repository for the VSecLab team
