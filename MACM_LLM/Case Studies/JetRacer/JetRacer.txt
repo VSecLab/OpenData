@@ -1,0 +1,4 @@
+The JetRacer, an autonomous mini-vehicle used for robotics and machine learning education that enables driving using AI.
+The vehicle was customised with a speed sensor and a chassis-mounted microcontroller, enabling speed measurement. Powered by the Jetson Nano(i.e. a compact AI computing
+device used for object identification and navigation), the JetRacer connects to a LAN network. A PC connected on the LAN can use a web service built with the Jupyter Lab API
+(hosted on the vehicle), in order to control JetRacer or manually pilot it via joystick

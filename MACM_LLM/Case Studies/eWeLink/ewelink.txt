@@ -1,0 +1,5 @@
+The ITEAD Sonoff Micro is a smart USB adapter that allows a standard USB port to function as a remotely controlled switch, It is integrated with the eWeLink platform, hosted remotely and offered as a service.
+The ITEAD Sonoff Micro features include programmable charge interruption, power status monitoring, and remote control of connected devices. 
+The user controls the device  through the smartphone that hosts the eWelink mobile application. To operate, the device must first be paired with a user’s mobile application. 
+The pairing process, begins by activating the pairing mode on the device, during which the device creates a SoftAP network (Step 1). The user then scans a QR code via the eWeLink app (Step 2), which contacts the Coolkit backend to retrieve
+the device key (Step 3). Once received, the app encrypts (through the key of the device) and sends the home Wi-Fi SSID and password through the Sonoff SoftAP network (Steps 4–5). Finally, the device reconnects to the home Wi-Fi and confirms pairing (Step 6).

@@ -1,0 +1,9 @@
+The system consists of three virtual machines in a cloud environment.
+The first one runs a WordPress application on top of an Apache web
+server. A second machine provides the mySQL database, which stores
+and manages all application data. A third machine operates as a Load
+Balancer, distributing incoming client requests toward the
+WordPress instance. The WordPress application interacts with the
+database to retrieve and update information, while the Load Balancer
+ensures that all external requests are directed to the web
+application.
