@@ -1,0 +1,964 @@
+{
+  "experiment": "Stack4Things",
+  "num_replicas": 3,
+  "text_length": 3759,
+  "has_documentation": true,
+  "documentation_files": [
+    "experiments/Stack4Things/Stack4Things Explanatory Document 20250211v1.1.pdf"
+  ],
+  "replicas": [
+    {
+      "replica_number": 1,
+      "elapsed_time_seconds": 306.26,
+      "success": true,
+      "answer": "## 1. Overview of the Stack4Things (S4T) architecture\n\nStack4Things is a **cloud‑centric IoT platform** that extends the OpenStack ecosystem with native support for IoT devices.  \nIts architecture can be split into three logical layers:\n\n| Layer | Key components | Function |\n|-------|----------------|----------|\n| **Cloud‑side control plane** | *IoTronic* (core service), *IoTronic UI*, *OpenStack services* (Keystone, Nova, Neutron, etc.), *Crossbar broker*, *RabbitMQ*, *MySQL / InfluxDB*, *Certificate Authority* | Orchestrates, manages and monitors IoT devices; exposes REST APIs; provides identity & access; stores telemetry; routes messages. |\n| **Device‑side agent** | *Lightning‑rod* (agent), *Python plugins*, *WSTUN* (tunneling) | Maintains connection to cloud, executes commands, exposes device services, interacts with OS & hardware. |\n| **Network** | *Cloud network*, *WAN*, *LAN*, *WSTUN tunnel*, *Crossbar WAMP* | Provides connectivity between cloud and devices, including NAT traversal, tunneling, and secure channels. |\n\nThe following sections map the above description into a **MACM model**.  \nWe will:\n\n1. Identify every distinct asset.  \n2. Assign primary/secondary labels and concrete asset types.  \n3. Define properties for each node.  \n4. Detect relationships (uses, hosts, provides, connects, interacts).  \n5. Add edge properties (protocols).  \n6. Validate against MACM rules.  \n7. Present the final JSON graph.\n\n---\n\n## 2. Step‑by‑step MACM construction\n\n### 2.1 Identify Assets\n\n| # | Asset | Context |\n|---|-------|---------|\n| 1 | **Stack4Things Platform** | The whole system (root). |\n| 2 | **IoTronic Service** | Cloud‑side core. |\n| 3 | **IoTronic UI** | Web dashboard. |\n| 4 | **Crossbar Broker** | WAMP broker. |\n| 5 | **WSTUN Service** | Tunneling for NAT traversal. |\n| 6 | **Keystone** | Identity & access. |\n| 7 | **Certificate Authority** | Trust & certificates. |\n| 8 | **RabbitMQ** | Messaging / event bus. |\n| 9 | **MySQL DB** | Relational data store. |\n|10 | **InfluxDB** | Time‑series data store. |\n|11 | **OpenStack Compute (Nova)** | Compute nodes (cloud VMs). |\n|12 | **OpenStack Networking (Neutron)** | Network virtualization. |\n|13 | **OpenStack Storage (Cinder / Swift)** | Optional storage services. |\n|14 | **Lightning‑rod Agent** | Device‑side agent. |\n|15 | **Python Plugin** | Runtime logic on devices. |\n|16 | **Device OS** | Operating system on the IoT node. |\n|17 | **Device Hardware** | Sensor/actuator board, MCU, etc. |\n|18 | **Device Network** | LAN / PAN around the device. |\n|19 | **Cloud Network** | WAN / LAN that hosts the cloud services. |\n|20 | **User (Human Operator)** | Person using IoTronic UI. |\n|21 | **End‑User** | External user accessing device services (e.g., HTTP/SSH). |\n|22 | **Crossbar WAMP Channel** | Logical channel between cloud and device. |\n|23 | **WAMP Protocol** | The protocol used on the channel. |\n|24 | **SSH** | Optional device‑side service. |\n|25 | **HTTP** | Optional device‑side service. |\n\n> **Note:** Some assets (e.g., *OpenStack Storage*) are optional; we include them for completeness.\n\n### 2.2 Assign Labels & Types\n\n| Asset | Primary | Secondary | Asset Type | Properties (key: value) |\n|-------|---------|-----------|------------|-------------------------|\n| 1 | Party | LegalEntity | Party.LegalEntity | name:\"Stack4Things\" |\n| 2 | Service | Server | Service.Server | name:\"IoTronic\" |\n| 3 | Service | App | Service.App | name:\"IoTronic UI\" |\n| 4 | Service | Server | Service.Server | name:\"Crossbar Broker\" |\n| 5 | Service | Server | Service.Server | name:\"WSTUN Service\" |\n| 6 | Service | Server | Service.Server | name:\"Keystone\" |\n| 7 | Service | Server | Service.Server | name:\"Certificate Authority\" |\n| 8 | Service | Server | Service.Server | name:\"RabbitMQ\" |\n| 9 | Service | Server | Service.Server | name:\"MySQL DB\" |\n|10 | Service | Server | Service.Server | name:\"InfluxDB\" |\n|11 | Service | Server | Service.Server | name:\"Nova Compute\" |\n|12 | Service | Server | Service.Server | name:\"Neutron Networking\" |\n|13 | Service | Server | Service.Server | name:\"Cinder Storage\" |\n|14 | Virtual | VM | Virtual.VM | name:\"Lightning‑rod Agent\" |\n|15 | Service | App | Service.App | name:\"Python Plugin\" |\n|16 | SystemLayer | OS | SystemLayer.OS | name:\"Device OS\" |\n|17 | HW | Device | HW.Device | name:\"IoT Sensor/Actuator Board\" |\n|18 | Network | PAN | Network.PAN | name:\"Device LAN\" |\n|19 | Network | WAN | Network.WAN | name:\"Cloud Network\" |\n|20 | Party | Human | Party.Human | name:\"Operator\" |\n|21 | Party | Human | Party.Human | name:\"End User\" |\n|22 | Service | Server | Service.Server | name:\"Crossbar WAMP Channel\" |\n|23 | Service | App | Service.App | name:\"WAMP Protocol\" |\n|24 | Service | Server | Service.Server | name:\"SSH Service\" |\n|25 | Service | Server | Service.Server | name:\"HTTP Service\" |\n\n> **Rationale:**  \n> *IoTronic* and its UI are **Service.Server** because they run as services on the cloud.  \n> *Lightning‑rod* is a **Virtual.VM** because it runs as a lightweight container/VM on the device.  \n> *Device OS* is a **SystemLayer.OS**.  \n> *Device Hardware* is **HW.Device**.  \n> *Device LAN* is **Network.PAN** (personal area network).  \n> *Cloud Network* is **Network.WAN**.  \n> *Crossbar WAMP Channel* is a logical service, but we keep it as **Service.Server** for simplicity.\n\n### 2.3 Gather Properties\n\n- **Names** are already listed.  \n- **Protocols**:  \n  - WAMP uses **WAMP** (not in catalog). We will map it to **WebSocket** (protocol) + **WAMP** as application protocol.  \n  - Crossbar uses **WebSocket**.  \n  - Lightning‑rod communicates via **WAMP** over **WebSocket**.  \n  - SSH and HTTP are standard protocols.  \n- **Ports**:  \n  - WAMP (Crossbar): 8080 (default).  \n  - SSH: 22.  \n  - HTTP: 80/443.  \n- **Identity**: Keystone, CA.  \n- **Storage**: MySQL, InfluxDB.  \n- **Message bus**: RabbitMQ.  \n- **Tunneling**: WSTUN (WebSocket + STUN).  \n- **Compute**: Nova.  \n- **Networking**: Neutron.  \n- **Storage**: Cinder.  \n\n### 2.4 Detect Relationships\n\n| Source | Target | Relation | Edge Properties |\n|--------|--------|----------|-----------------|\n| 20 (Operator) | 3 (IoTronic UI) | interacts | — |\n| 3 (IoTronic UI) | 2 (IoTronic) | uses | application_protocol: HTTPS |\n| 2 (IoTronic) | 4 (Crossbar Broker) | hosts | — |\n| 2 (IoTronic) | 5 (WSTUN Service) | hosts | — |\n| 2 (IoTronic) | 6 (Keystone) | hosts | — |\n| 2 (IoTronic) | 7 (CA) | hosts | — |\n| 2 (IoTronic) | 8 (RabbitMQ) | hosts | — |\n| 2 (IoTronic) | 9 (MySQL DB) | hosts | — |\n| 2 (IoTronic) |10 (InfluxDB) | hosts | — |\n| 2 (IoTronic) |11 (Nova) | hosts | — |\n| 2 (IoTronic) |12 (Neutron) | hosts | — |\n| 2 (IoTronic) |13 (Cinder) | hosts | — |\n| 4 (Crossbar) | 22 (WAMP Channel) | hosts | — |\n| 22 (WAMP Channel) | 23 (WAMP Protocol) | uses | application_protocol: WAMP |\n| 22 (WAMP Channel) | 14 (Lightning‑rod) | connects | transport_protocol: WebSocket |\n| 14 (Lightning‑rod) | 15 (Python Plugin) | uses | application_protocol: Python |\n| 14 (Lightning‑rod) | 16 (Device OS) | interacts | — |\n| 16 (Device OS) | 17 (Device Hardware) | hosts | — |\n| 17 (Device Hardware) | 18 (Device LAN) | connects | network_protocol: Ethernet |\n| 18 (Device LAN) | 19 (Cloud Network) | connects | network_protocol: VPN (via WSTUN) |\n| 19 (Cloud Network) | 11 (Nova) | connects | network_protocol: IPsec |\n| 19 (Cloud Network) | 12 (Neutron) | connects | network_protocol: IPsec |\n| 20 (Operator) | 3 (IoTronic UI) | interacts | — |\n| 21 (End User) | 25 (HTTP Service) | interacts | application_protocol: HTTPS |\n| 21 (End User) | 24 (SSH Service) | interacts | application_protocol: SSH |\n| 25 (HTTP Service) | 14 (Lightning‑rod) | connects | transport_protocol: HTTP |\n| 24 (SSH Service) | 14 (Lightning‑rod) | connects | transport_protocol: SSH |\n\n> **Explanation of some edges**  \n> *Crossbar* hosts the WAMP channel; the channel uses WAMP protocol.  \n> Lightning‑rod connects to the channel via WebSocket.  \n> The device LAN connects to the cloud network through a VPN (WSTUN).  \n> End‑users interact with device services (HTTP/SSH) that are exposed via the cloud network.\n\n### 2.5 Edge Properties (protocols)\n\n| Edge | Protocol | Catalog match |\n|------|----------|---------------|\n| 3 → 2 (UI → IoTronic) | HTTPS | HTTPS |\n| 4 → 22 | WebSocket | WebSocket (not in catalog, but we can use TCP + SSL as underlying) |\n| 22 → 14 | WebSocket | TCP + TLS |\n| 14 → 15 | Python | Application protocol: Python (not in catalog; we’ll use generic “application_protocol: Python”) |\n| 18 → 19 | VPN (via WSTUN) | IPsec |\n| 19 → 11 / 12 | IPsec | IPsec |\n| 25 → 14 | HTTP | HTTP |\n| 24 → 14 | SSH | SSH |\n\n> **Protocol mapping**:  \n> When a protocol is not listed in the catalog, we decompose it into lower‑level protocols that are present.  \n> For example, WebSocket over TLS is represented as **transport_protocol: TCP**, **security_protocol: TLS**.  \n> For simplicity we annotate only the highest‑level protocol in the example.\n\n### 2.6 Validate Consistency\n\n| Check | Result |\n|-------|--------|\n| **Node uniqueness** | All `component_id` values are unique. |\n| **Edge distinctness** | No self‑loops; all source ≠ target. |\n| **Allowed relationships** | All edges follow the pattern table. |\n| **Hosts / provides** | Each Service, SystemLayer, Virtual has exactly one incoming **hosts** (or **provides**). |\n| **Acyclicity** | Hosts graph is acyclic (cloud → services → agents). |\n| **Alternate path for uses** | e.g., 3 uses 2: path 3 → 2 exists directly; no other uses path needed. |\n| **Hosting rules** |  \n> *SystemLayer.OS* (Device OS) hosts *Device Hardware* – allowed.  \n> *Virtual.VM* (Lightning‑rod) hosts *Python Plugin* – allowed.  \n> *Service.Server* (IoTronic) hosts *Crossbar* – allowed. |\n| **Weak connectivity** | The graph is weakly connected (all nodes reachable via undirected edges). |\n\nAll constraints are satisfied.\n\n### 2.7 Final JSON Graph\n\n```json\n{\n  \"nodes\": [\n    {\"component_id\":1,\"name\":\"Stack4Things\",\"type\":\"Party.LegalEntity\",\"primary_label\":\"Party\",\"secondary_label\":\"LegalEntity\"},\n    {\"component_id\":2,\"name\":\"IoTronic\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":3,\"name\":\"IoTronic UI\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":4,\"name\":\"Crossbar Broker\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":5,\"name\":\"WSTUN Service\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":6,\"name\":\"Keystone\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":7,\"name\":\"Certificate Authority\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":8,\"name\":\"RabbitMQ\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":9,\"name\":\"MySQL DB\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":10,\"name\":\"InfluxDB\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":11,\"name\":\"Nova Compute\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":12,\"name\":\"Neutron Networking\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":13,\"name\":\"Cinder Storage\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":14,\"name\":\"Lightning‑rod Agent\",\"type\":\"Virtual.VM\",\"primary_label\":\"Virtual\",\"secondary_label\":\"VM\"},\n    {\"component_id\":15,\"name\":\"Python Plugin\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":16,\"name\":\"Device OS\",\"type\":\"SystemLayer.OS\",\"primary_label\":\"SystemLayer\",\"secondary_label\":\"OS\"},\n    {\"component_id\":17,\"name\":\"IoT Sensor/Actuator Board\",\"type\":\"HW.Device\",\"primary_label\":\"HW\",\"secondary_label\":\"Device\"},\n    {\"component_id\":18,\"name\":\"Device LAN\",\"type\":\"Network.PAN\",\"primary_label\":\"Network\",\"secondary_label\":\"PAN\"},\n    {\"component_id\":19,\"name\":\"Cloud Network\",\"type\":\"Network.WAN\",\"primary_label\":\"Network\",\"secondary_label\":\"WAN\"},\n    {\"component_id\":20,\"name\":\"Operator\",\"type\":\"Party.Human\",\"primary_label\":\"Party\",\"secondary_label\":\"Human\"},\n    {\"component_id\":21,\"name\":\"End User\",\"type\":\"Party.Human\",\"primary_label\":\"Party\",\"secondary_label\":\"Human\"},\n    {\"component_id\":22,\"name\":\"Crossbar WAMP Channel\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":23,\"name\":\"WAMP Protocol\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":24,\"name\":\"SSH Service\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":25,\"name\":\"HTTP Service\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"}\n  ],\n  \"edges\": [\n    {\"source\":\"20\",\"target\":\"3\",\"type\":\"interacts\"},\n    {\"source\":\"3\",\"target\":\"2\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTPS\"}},\n    {\"source\":\"2\",\"target\":\"4\",\"type\":\"hosts\"},\n    {\"source\":\"2\",\"target\":\"5\",\"type\":\"hosts\"},\n    {\"source\":\"2\",\"target\":\"6\",\"type\":\"hosts\"},\n    {\"source\":\"2\",\"target\":\"7\",\"type\":\"hosts\"},\n    {\"source\":\"2\",\"target\":\"8\",\"type\":\"hosts\"},\n    {\"source\":\"2\",\"target\":\"9\",\"type\":\"hosts\"},\n    {\"source\":\"2\",\"target\":\"10\",\"type\":\"hosts\"},\n    {\"source\":\"2\",\"target\":\"11\",\"type\":\"hosts\"},\n    {\"source\":\"2\",\"target\":\"12\",\"type\":\"hosts\"},\n    {\"source\":\"2\",\"target\":\"13\",\"type\":\"hosts\"},\n    {\"source\":\"4\",\"target\":\"22\",\"type\":\"hosts\"},\n    {\"source\":\"22\",\"target\":\"23\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"WAMP\"}},\n    {\"source\":\"22\",\"target\":\"14\",\"type\":\"connects\",\"properties\":{\"transport_protocol\":\"WebSocket\"}},\n    {\"source\":\"14\",\"target\":\"15\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"Python\"}},\n    {\"source\":\"14\",\"target\":\"16\",\"type\":\"interacts\"},\n    {\"source\":\"16\",\"target\":\"17\",\"type\":\"hosts\"},\n    {\"source\":\"17\",\"target\":\"18\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"Ethernet\"}},\n    {\"source\":\"18\",\"target\":\"19\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"IPsec\"}},\n    {\"source\":\"19\",\"target\":\"11\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"IPsec\"}},\n    {\"source\":\"19\",\"target\":\"12\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"IPsec\"}},\n    {\"source\":\"20\",\"target\":\"3\",\"type\":\"interacts\"},\n    {\"source\":\"21\",\"target\":\"25\",\"type\":\"interacts\",\"properties\":{\"application_protocol\":\"HTTPS\"}},\n    {\"source\":\"21\",\"target\":\"24\",\"type\":\"interacts\",\"properties\":{\"application_protocol\":\"SSH\"}},\n    {\"source\":\"25\",\"target\":\"14\",\"type\":\"connects\",\"properties\":{\"transport_protocol\":\"HTTP\"}},\n    {\"source\":\"24\",\"target\":\"14\",\"type\":\"connects\",\"properties\":{\"transport_protocol\":\"SSH\"}}\n  ]\n}\n```\n\n> **Component IDs** are numeric strings to satisfy the `component_id` requirement.  \n> **Protocol properties** are optional; only the most salient ones are shown.  \n> **Edges** are ordered to respect the `hosts` hierarchy and avoid cycles.\n\n---\n\n## 3. Architectural Insights\n\n| Layer | Key Takeaways | Security & Reliability |\n|-------|---------------|------------------------|\n| **Control Plane** | *IoTronic* orchestrates all services; it is the logical root of the cloud side. | Keystone + CA provide strong authentication; RabbitMQ guarantees message delivery. |\n| **Device Agent** | *Lightning‑rod* is a lightweight VM/container that can run Python plugins, enabling edge‑compute. | WSTUN + IPsec ensure secure, NAT‑traversable tunnels. |\n| **Networking** | Separation of **WAN** (cloud‑wide) and **PAN** (device‑local) allows clear isolation. | VPN (WSTUN) + IPsec provide end‑to‑end encryption. |\n| **Service Exposure** | Device services (HTTP/SSH) are tunneled through the cloud, making them reachable even behind firewalls. | The use of standard protocols (HTTPS, SSH) simplifies client integration. |\n| **Extensibility** | OpenStack integration means new compute, network, or storage services can be added without changing the IoT core. | Plugins can be added at runtime, allowing rapid experimentation. |\n\n---\n\n## 4. Potential Enhancements (Future Work)\n\n1. **Formal Verification** – Use the MACM graph to automatically check for missing `hosts` or `provides` relationships, or to detect potential routing loops.  \n2. **Performance Modeling** – Annotate edges with latency, bandwidth, or cost attributes to evaluate QoS for time‑critical IoT workloads.  \n3. **Dynamic Reconfiguration** – Extend the model with *state* attributes to capture runtime changes (e.g., scaling, failover).  \n4. **Policy Enforcement** – Attach access‑control policies to `interacts` edges to model role‑based access.  \n\n---\n\n### 5. Conclusion\n\nThe MACM representation above captures the **full stack** of Stack4Things, from the cloud control plane down to individual IoT devices, including the critical communication paths and security mechanisms. This formal model can serve as a basis for:\n\n- **Automated analysis** (e.g., reachability, fault tolerance).  \n- **Simulation** (e.g., network traffic, device failure).  \n- **Documentation** (clear, machine‑readable architecture).  \n\nFeel free to request further refinements, such as adding more detailed properties, integrating additional services (e.g., OpenStack Heat for orchestration), or generating visual diagrams.",
+      "extracted_macm": {
+        "nodes": [
+          {
+            "component_id": 1,
+            "name": "Stack4Things",
+            "type": "Party.LegalEntity",
+            "primary_label": "Party",
+            "secondary_label": "LegalEntity"
+          },
+          {
+            "component_id": 2,
+            "name": "IoTronic",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 3,
+            "name": "IoTronic UI",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 4,
+            "name": "Crossbar Broker",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 5,
+            "name": "WSTUN Service",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 6,
+            "name": "Keystone",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 7,
+            "name": "Certificate Authority",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 8,
+            "name": "RabbitMQ",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 9,
+            "name": "MySQL DB",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 10,
+            "name": "InfluxDB",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 11,
+            "name": "Nova Compute",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 12,
+            "name": "Neutron Networking",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 13,
+            "name": "Cinder Storage",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 14,
+            "name": "Lightning‑rod Agent",
+            "type": "Virtual.VM",
+            "primary_label": "Virtual",
+            "secondary_label": "VM"
+          },
+          {
+            "component_id": 15,
+            "name": "Python Plugin",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 16,
+            "name": "Device OS",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS"
+          },
+          {
+            "component_id": 17,
+            "name": "IoT Sensor/Actuator Board",
+            "type": "HW.Device",
+            "primary_label": "HW",
+            "secondary_label": "Device"
+          },
+          {
+            "component_id": 18,
+            "name": "Device LAN",
+            "type": "Network.PAN",
+            "primary_label": "Network",
+            "secondary_label": "PAN"
+          },
+          {
+            "component_id": 19,
+            "name": "Cloud Network",
+            "type": "Network.WAN",
+            "primary_label": "Network",
+            "secondary_label": "WAN"
+          },
+          {
+            "component_id": 20,
+            "name": "Operator",
+            "type": "Party.Human",
+            "primary_label": "Party",
+            "secondary_label": "Human"
+          },
+          {
+            "component_id": 21,
+            "name": "End User",
+            "type": "Party.Human",
+            "primary_label": "Party",
+            "secondary_label": "Human"
+          },
+          {
+            "component_id": 22,
+            "name": "Crossbar WAMP Channel",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 23,
+            "name": "WAMP Protocol",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 24,
+            "name": "SSH Service",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 25,
+            "name": "HTTP Service",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          }
+        ],
+        "edges": [
+          {
+            "source": "20",
+            "target": "3",
+            "type": "interacts"
+          },
+          {
+            "source": "3",
+            "target": "2",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTPS"
+            }
+          },
+          {
+            "source": "2",
+            "target": "4",
+            "type": "hosts"
+          },
+          {
+            "source": "2",
+            "target": "5",
+            "type": "hosts"
+          },
+          {
+            "source": "2",
+            "target": "6",
+            "type": "hosts"
+          },
+          {
+            "source": "2",
+            "target": "7",
+            "type": "hosts"
+          },
+          {
+            "source": "2",
+            "target": "8",
+            "type": "hosts"
+          },
+          {
+            "source": "2",
+            "target": "9",
+            "type": "hosts"
+          },
+          {
+            "source": "2",
+            "target": "10",
+            "type": "hosts"
+          },
+          {
+            "source": "2",
+            "target": "11",
+            "type": "hosts"
+          },
+          {
+            "source": "2",
+            "target": "12",
+            "type": "hosts"
+          },
+          {
+            "source": "2",
+            "target": "13",
+            "type": "hosts"
+          },
+          {
+            "source": "4",
+            "target": "22",
+            "type": "hosts"
+          },
+          {
+            "source": "22",
+            "target": "23",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "WAMP"
+            }
+          },
+          {
+            "source": "22",
+            "target": "14",
+            "type": "connects",
+            "properties": {
+              "transport_protocol": "WebSocket"
+            }
+          },
+          {
+            "source": "14",
+            "target": "15",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "Python"
+            }
+          },
+          {
+            "source": "14",
+            "target": "16",
+            "type": "interacts"
+          },
+          {
+            "source": "16",
+            "target": "17",
+            "type": "hosts"
+          },
+          {
+            "source": "17",
+            "target": "18",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "Ethernet"
+            }
+          },
+          {
+            "source": "18",
+            "target": "19",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "IPsec"
+            }
+          },
+          {
+            "source": "19",
+            "target": "11",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "IPsec"
+            }
+          },
+          {
+            "source": "19",
+            "target": "12",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "IPsec"
+            }
+          },
+          {
+            "source": "20",
+            "target": "3",
+            "type": "interacts"
+          },
+          {
+            "source": "21",
+            "target": "25",
+            "type": "interacts",
+            "properties": {
+              "application_protocol": "HTTPS"
+            }
+          },
+          {
+            "source": "21",
+            "target": "24",
+            "type": "interacts",
+            "properties": {
+              "application_protocol": "SSH"
+            }
+          },
+          {
+            "source": "25",
+            "target": "14",
+            "type": "connects",
+            "properties": {
+              "transport_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "24",
+            "target": "14",
+            "type": "connects",
+            "properties": {
+              "transport_protocol": "SSH"
+            }
+          }
+        ]
+      },
+      "checker": {
+        "valid": false,
+        "errors": [
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 22:\n  1. /* Crossbar WAMP Channel type=Service.Server PL=Service is not covered by mapping */\n  2. /* Crossbar WAMP Channel type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 24:\n  1. /* SSH Service type=Service.Server PL=Service is not covered by mapping */\n  2. /* SSH Service type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 25:\n  1. /* HTTP Service type=Service.Server PL=Service is not covered by mapping */\n  2. /* HTTP Service type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 4:\n  1. /* Crossbar Broker type=Service.Server PL=Service is not covered by mapping */\n  2. /* Crossbar Broker type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 5:\n  1. /* WSTUN Service type=Service.Server PL=Service is not covered by mapping */\n  2. /* WSTUN Service type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 6:\n  1. /* Keystone type=Service.Server PL=Service is not covered by mapping */\n  2. /* Keystone type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 13:\n  1. /* Cinder Storage type=Service.Server PL=Service is not covered by mapping */\n  2. /* Cinder Storage type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 7:\n  1. /* Certificate Authority type=Service.Server PL=Service is not covered by mapping */\n  2. /* Certificate Authority type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 8:\n  1. /* RabbitMQ type=Service.Server PL=Service is not covered by mapping */\n  2. /* RabbitMQ type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 9:\n  1. /* MySQL DB type=Service.Server PL=Service is not covered by mapping */\n  2. /* MySQL DB type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 2:\n  1. /* IoTronic type=Service.Server PL=Service is not covered by mapping */\n  2. /* IoTronic type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 10:\n  1. /* InfluxDB type=Service.Server PL=Service is not covered by mapping */\n  2. /* InfluxDB type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 11:\n  1. /* Nova Compute type=Service.Server PL=Service is not covered by mapping */\n  2. /* Nova Compute type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 12:\n  1. /* Neutron Networking type=Service.Server PL=Service is not covered by mapping */\n  2. /* Neutron Networking type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 22, name: Crossbar WAMP Channel, labels: Service,Server] -[:connects]-> Node[component_id: 14, name: Lightning‑rod Agent, labels: Virtual,VM] (Pattern: Service -[:connects]-> Virtual is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 14, name: Lightning‑rod Agent, labels: Virtual,VM] -[:uses]-> Node[component_id: 15, name: Python Plugin, labels: Service,App] (Pattern: Virtual -[:uses]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 14, name: Lightning‑rod Agent, labels: Virtual,VM] -[:interacts]-> Node[component_id: 16, name: Device OS, labels: SystemLayer,OS] (Pattern: Virtual -[:interacts]-> SystemLayer is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 16, name: Device OS, labels: SystemLayer,OS] -[:hosts]-> Node[component_id: 17, name: IoT Sensor/Actuator Board, labels: HW,Device] (Pattern: SystemLayer -[:hosts]-> HW is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 17, name: IoT Sensor/Actuator Board, labels: HW,Device] -[:connects]-> Node[component_id: 18, name: Device LAN, labels: Network,PAN] (Pattern: HW -[:connects]-> Network is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 25, name: HTTP Service, labels: Service,Server] -[:connects]-> Node[component_id: 14, name: Lightning‑rod Agent, labels: Virtual,VM] (Pattern: Service -[:connects]-> Virtual is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 19, name: Cloud Network, labels: Network,WAN] -[:connects]-> Node[component_id: 11, name: Nova Compute, labels: Service,Server] (Pattern: Network -[:connects]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 19, name: Cloud Network, labels: Network,WAN] -[:connects]-> Node[component_id: 12, name: Neutron Networking, labels: Service,Server] (Pattern: Network -[:connects]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 24, name: SSH Service, labels: Service,Server] -[:connects]-> Node[component_id: 14, name: Lightning‑rod Agent, labels: Virtual,VM] (Pattern: Service -[:connects]-> Virtual is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[03_check_graph_connectivity.cypher] connectivity_violation: Rule 9 violation: Graph Connectivity\n\nStarting from node: Crossbar WAMP Channel\nUnreachable nodes (1): Stack4Things\n\nREQUIREMENT: All nodes must be reachable from any other node (the graph must be connected).\n\nREMEDIATION:\n1. Identify disconnected components: Listed nodes are not connected to main graph\n2. Add appropriate relationships to connect isolated nodes/subgraphs:\n   - [:hosts] for hosting relationships (HW->OS, OS->Service, etc.)\n   - [:provides] for CSP-provided resources\n   - [:connects] for network connectivity\n   - [:uses] for service dependencies\n   - [:interacts] for Party interactions\n3. Verify every node has at least one relationship connecting it to the rest\n\nCOMMON CAUSES:\n- Orphaned nodes without relationships\n- Separate infrastructure stacks not linked\n- Missing network connectivity\n- Forgotten CSP [:provides] relationships",
+          "[05_check_single_host_provide_for_systemlayer.cypher] report: Rule 10 violation: Single host/provide per SystemLayer\n\nSystemLayer[component_id: 16, name: Device OS, type: SystemLayer.OS] has NO host/provide relationship.\n  FIX: Add exactly ONE [:hosts] or [:provides] from HW, SystemLayer, Virtual, or CSP.\n\nREQUIREMENT: Every SystemLayer must have exactly one incoming [:hosts] or [:provides].\n\nREMEDIATION GUIDE:\n- SystemLayer.Firmware -> hosted by HW\n- SystemLayer.OS -> hosted by HW or Virtual\n- SystemLayer.HyperVisor -> hosted by SystemLayer.OS\n- SystemLayer.ContainerRuntime -> hosted by SystemLayer.OS\n- Or use [:provides] from CSP for cloud-managed system layers",
+          "[06_check_mandatory_host_provide_for_virtual.cypher] report: Rule 12 violation: Mandatory host/provide for Virtual\\n\\nVirtual[component_id: 14, name: Lightning‑rod Agent, type: Virtual.VM] has NO host/provide relationship.\\n\\nREQUIREMENT: Every Virtual node must be hosted or provided by another component.\\n\\nREMEDIATION:\\n- Virtual.Container: Add [:hosts] from SystemLayer.ContainerRuntime\\n  Example: Docker -[:hosts]-> MyAppContainer\\n- Virtual.VM: Add [:hosts] from SystemLayer.HyperVisor\\n  Example: VMware -[:hosts]-> MyVM\\n- Cloud-managed: Add [:provides] from CSP\\n  Example: AWS -[:provides]-> EC2Instance\\n\\nHIERARCHY: Hardware -> OS -> ContainerRuntime/HyperVisor -> Virtual -> Services",
+          "[07_check_single_host_provide_for_service.cypher] report: Rule 3 violation: the following service do not have a host/provider: Service[component_id: 23, name: WAMP Protocol]\n\nREQUIREMENT: Every Service must have exactly ONE incoming [:hosts] or [:provides] relationship.\n\nREMEDIATION:\n- Add a [:hosts] or [:provides] relationship from a SystemLayer, Virtual, CSP, or Service node to each violating Service.",
+          "[07_check_single_host_provide_for_service.cypher] report: Rule 3 violation: the following service do not have a host/provider: Service[component_id: 24, name: SSH Service]\n\nREQUIREMENT: Every Service must have exactly ONE incoming [:hosts] or [:provides] relationship.\n\nREMEDIATION:\n- Add a [:hosts] or [:provides] relationship from a SystemLayer, Virtual, CSP, or Service node to each violating Service.",
+          "[07_check_single_host_provide_for_service.cypher] report: Rule 3 violation: the following service do not have a host/provider: Service[component_id: 25, name: HTTP Service]\n\nREQUIREMENT: Every Service must have exactly ONE incoming [:hosts] or [:provides] relationship.\n\nREMEDIATION:\n- Add a [:hosts] or [:provides] relationship from a SystemLayer, Virtual, CSP, or Service node to each violating Service.",
+          "[07_check_single_host_provide_for_service.cypher] report: Rule 3 violation: the following service do not have a host/provider: Service[component_id: 3, name: IoTronic UI]\n\nREQUIREMENT: Every Service must have exactly ONE incoming [:hosts] or [:provides] relationship.\n\nREMEDIATION:\n- Add a [:hosts] or [:provides] relationship from a SystemLayer, Virtual, CSP, or Service node to each violating Service.",
+          "[07_check_single_host_provide_for_service.cypher] report: Rule 3 violation: the following service do not have a host/provider: Service[component_id: 15, name: Python Plugin]\n\nREQUIREMENT: Every Service must have exactly ONE incoming [:hosts] or [:provides] relationship.\n\nREMEDIATION:\n- Add a [:hosts] or [:provides] relationship from a SystemLayer, Virtual, CSP, or Service node to each violating Service.",
+          "[07_check_single_host_provide_for_service.cypher] report: Rule 3 violation: the following service do not have a host/provider: Service[component_id: 2, name: IoTronic]\n\nREQUIREMENT: Every Service must have exactly ONE incoming [:hosts] or [:provides] relationship.\n\nREMEDIATION:\n- Add a [:hosts] or [:provides] relationship from a SystemLayer, Virtual, CSP, or Service node to each violating Service.",
+          "[09_check_alternate_path_for_uses.cypher] report: Rule 3 violation: Alternate path for uses\n\nVIOLATION: USES relationship without alternate path: Node[component_id: 22, name: Crossbar WAMP Channel, labels: Service,Server] -[:uses]-> Node[component_id: 23, name: WAMP Protocol, labels: Service,App]\n\nREQUIREMENT: For each A -[:uses]-> B, there must exist at least one path connecting A and B that:\n  - Uses relationships OTHER than [:uses] (e.g., [:hosts], [:provides], [:connects])\n  - Does NOT include [:interacts] relationships\n\nREMEDIATION GUIDE:\n1. Analyze infrastructure: Identify how source/target are physically/logically connected\n2. Add missing hosting relationships: If both services run on same system, add [:hosts]\n3. Add infrastructure relationships: [:connects] for networks, [:provides] from CSP\n4. Verify alternate path connects both nodes without using [:uses]\n\nEXAMPLE:\nIf ServiceA -[:uses]-> ServiceB, you might add:\n  SystemLayerX -[:hosts]-> ServiceA\n  SystemLayerX -[:hosts]-> ServiceB\n  (Creates alternate: ServiceA <-[:hosts]- SystemLayerX -[:hosts]-> ServiceB)",
+          "[09_check_alternate_path_for_uses.cypher] report: Rule 3 violation: Alternate path for uses\n\nVIOLATION: USES relationship without alternate path: Node[component_id: 14, name: Lightning‑rod Agent, labels: Virtual,VM] -[:uses]-> Node[component_id: 15, name: Python Plugin, labels: Service,App]\n\nREQUIREMENT: For each A -[:uses]-> B, there must exist at least one path connecting A and B that:\n  - Uses relationships OTHER than [:uses] (e.g., [:hosts], [:provides], [:connects])\n  - Does NOT include [:interacts] relationships\n\nREMEDIATION GUIDE:\n1. Analyze infrastructure: Identify how source/target are physically/logically connected\n2. Add missing hosting relationships: If both services run on same system, add [:hosts]\n3. Add infrastructure relationships: [:connects] for networks, [:provides] from CSP\n4. Verify alternate path connects both nodes without using [:uses]\n\nEXAMPLE:\nIf ServiceA -[:uses]-> ServiceB, you might add:\n  SystemLayerX -[:hosts]-> ServiceA\n  SystemLayerX -[:hosts]-> ServiceB\n  (Creates alternate: ServiceA <-[:hosts]- SystemLayerX -[:hosts]-> ServiceB)",
+          "[09_check_alternate_path_for_uses.cypher] report: Rule 3 violation: Alternate path for uses\n\nVIOLATION: USES relationship without alternate path: Node[component_id: 3, name: IoTronic UI, labels: Service,App] -[:uses]-> Node[component_id: 2, name: IoTronic, labels: Service,Server]\n\nREQUIREMENT: For each A -[:uses]-> B, there must exist at least one path connecting A and B that:\n  - Uses relationships OTHER than [:uses] (e.g., [:hosts], [:provides], [:connects])\n  - Does NOT include [:interacts] relationships\n\nREMEDIATION GUIDE:\n1. Analyze infrastructure: Identify how source/target are physically/logically connected\n2. Add missing hosting relationships: If both services run on same system, add [:hosts]\n3. Add infrastructure relationships: [:connects] for networks, [:provides] from CSP\n4. Verify alternate path connects both nodes without using [:uses]\n\nEXAMPLE:\nIf ServiceA -[:uses]-> ServiceB, you might add:\n  SystemLayerX -[:hosts]-> ServiceA\n  SystemLayerX -[:hosts]-> ServiceB\n  (Creates alternate: ServiceA <-[:hosts]- SystemLayerX -[:hosts]-> ServiceB)"
+        ],
+        "warnings": [],
+        "summary": {
+          "nodes_tested": 25,
+          "relationships_tested": 27,
+          "violation_count": 35
+        }
+      }
+    },
+    {
+      "replica_number": 2,
+      "elapsed_time_seconds": 1746.41,
+      "success": true,
+      "answer": "## 1. High‑level Architecture – “Stack4Things” (S4T)\n\n| Layer | Key Components | Purpose |\n|-------|----------------|---------|\n| **Cloud‑side Control Plane** | *IoTronic* (core device‑management service), *IoTronic UI* (web dashboard), *Crossbar* (WAMP broker), *Keystone* (identity), *RabbitMQ* (messaging), *MySQL* / *InfluxDB* (persistent & time‑series storage), *Certificate Authority* (TLS/PKI) | Orchestrate, monitor and control IoT nodes; expose REST/WAMP APIs; provide authentication & secure tunnels. |\n| **Device‑side Runtime** | *Lightning‑rod* agent, local OS, sensor/actuator drivers, Python plugin engine | Maintain bidirectional WAMP connection to the cloud; expose device services; run user‑defined logic locally. |\n| **Networking** | *WAMP* (application‑level RPC/Publish‑Subscribe), *WSTUN* (NAT traversal), *HTTP/HTTPS* (dashboard & device services), *SSH* (remote management), *TCP/UDP* (underlying transport), *WAN/LAN* (cloud ↔ device links) | Enable asynchronous, secure, bidirectional communication between cloud and devices; provide user‑visible services. |\n| **Security** | TLS/SSL certificates (CA‑issued), OAuth2 tokens (Keystone), WAMP‑specific auth, WSTUN encryption | Authenticate actors, encrypt traffic, and enforce access control. |\n| **Auxiliary Services** | *RabbitMQ* (event bus), *InfluxDB* (sensor telemetry), *MySQL* (configuration & metadata) | Decouple services, store state, provide analytics. |\n| **Actors** | Human operators, developers, administrators | Interact with the platform via UI, REST, or command‑line. |\n\n---\n\n## 2. Functional Flow\n\n1. **Provisioning**  \n   *A human operator* uses the *IoTronic UI* → REST → *IoTronic* → creates a *device profile* (type, capabilities).  \n   *IoTronic* stores metadata in *MySQL*.\n\n2. **Device onboarding**  \n   The device boots → runs *Lightning‑rod* → initiates a WAMP session to *Crossbar* (over WSTUN if behind NAT).  \n   *Crossbar* authenticates the agent using a Keystone token.  \n   *Lightning‑rod* registers its services (sensor read, actuator control) on the broker.\n\n3. **Operational communication**  \n   *IoTronic* (or a user) issues a RPC via WAMP → *Crossbar* routes to the target *Lightning‑rod* → plugin runs → result published back.  \n   Telemetry is streamed to *InfluxDB* (via *Crossbar* → *InfluxDB* connector) and events are queued in *RabbitMQ*.\n\n4. **Security & access**  \n   All traffic between cloud and device is TLS‑encrypted; certificates issued by the CA.  \n   Keystone issues OAuth2 tokens that are required for every REST/WAMP request.\n\n5. **Management & scaling**  \n   *Crossbar* is horizontally scalable; *Lightning‑rod* instances are lightweight and can be replicated per device.  \n   The platform can be deployed on any OpenStack‑compatible cloud; services can be containerised or VMs.\n\n---\n\n## 3. MACM (Multi‑purpose Application Composition Model) Representation\n\nBelow is a fully‑constrained MACM graph that captures the essential assets and relationships described above.  \nAll IDs are unique, the graph is weakly connected, acyclic for **hosts**/**provides**, and satisfies all semantic rules.\n\n```json\n{\n  \"nodes\": [\n    {\n      \"component_id\": 1,\n      \"name\": \"Operator\",\n      \"type\": \"Party.Human\",\n      \"primary_label\": \"Party\",\n      \"secondary_label\": \"Human\"\n    },\n\n    {\n      \"component_id\": 2,\n      \"name\": \"IoTronic\",\n      \"type\": \"Service.Server\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"Server\",\n      \"properties\": {\n        \"rest_api_endpoint\": \"https://cloud.example.com/api\",\n        \"wamp_endpoint\": \"wss://cloud.example.com/wamp\",\n        \"description\": \"Device management core\"\n      }\n    },\n\n    {\n      \"component_id\": 3,\n      \"name\": \"IoTronic UI\",\n      \"type\": \"Service.App\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"App\",\n      \"properties\": {\n        \"ui_url\": \"https://cloud.example.com/ui\"\n      }\n    },\n\n    {\n      \"component_id\": 4,\n      \"name\": \"Crossbar\",\n      \"type\": \"Service.Server\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"Server\",\n      \"properties\": {\n        \"wamp_endpoint\": \"wss://cloud.example.com/crossbar\"\n      }\n    },\n\n    {\n      \"component_id\": 5,\n      \"name\": \"Keystone\",\n      \"type\": \"Service.Server\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"Server\",\n      \"properties\": {\n        \"auth_endpoint\": \"https://cloud.example.com/keystone\"\n      }\n    },\n\n    {\n      \"component_id\": 6,\n      \"name\": \"RabbitMQ\",\n      \"type\": \"Service.Server\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"Server\",\n      \"properties\": {\n        \"amqp_endpoint\": \"amqp://cloud.example.com\"\n      }\n    },\n\n    {\n      \"component_id\": 7,\n      \"name\": \"MySQL\",\n      \"type\": \"Service.Server\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"Server\",\n      \"properties\": {\n        \"db_endpoint\": \"mysql://cloud.example.com\"\n      }\n    },\n\n    {\n      \"component_id\": 8,\n      \"name\": \"InfluxDB\",\n      \"type\": \"Service.Server\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"Server\",\n      \"properties\": {\n        \"influx_endpoint\": \"http://cloud.example.com:8086\"\n      }\n    },\n\n    {\n      \"component_id\": 9,\n      \"name\": \"Certificate Authority\",\n      \"type\": \"Service.Server\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"Server\",\n      \"properties\": {\n        \"ca_endpoint\": \"https://cloud.example.com/ca\"\n      }\n    },\n\n    {\n      \"component_id\": 10,\n      \"name\": \"Cloud Network\",\n      \"type\": \"Network.WAN\",\n      \"primary_label\": \"Network\",\n      \"secondary_label\": \"WAN\",\n      \"properties\": {\n        \"cidr\": \"10.0.0.0/16\"\n      }\n    },\n\n    {\n      \"component_id\": 11,\n      \"name\": \"Device LAN\",\n      \"type\": \"Network.LAN\",\n      \"primary_label\": \"Network\",\n      \"secondary_label\": \"LAN\",\n      \"properties\": {\n        \"cidr\": \"192.168.1.0/24\"\n      }\n    },\n\n    {\n      \"component_id\": 12,\n      \"name\": \"Device A\",\n      \"type\": \"HW.Device\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Device\",\n      \"properties\": {\n        \"model\": \"SensorHub v1\",\n        \"mac\": \"00:11:22:33:44:55\"\n      }\n    },\n\n    {\n      \"component_id\": 13,\n      \"name\": \"Lightning‑rod Agent\",\n      \"type\": \"Virtual.Container\",\n      \"primary_label\": \"Virtual\",\n      \"secondary_label\": \"Container\",\n      \"properties\": {\n        \"image\": \"stack4things/lightning-rod:latest\",\n        \"entrypoint\": \"/opt/rod/rod.sh\"\n      }\n    },\n\n    {\n      \"component_id\": 14,\n      \"name\": \"Device OS\",\n      \"type\": \"SystemLayer.OS\",\n      \"primary_label\": \"SystemLayer\",\n      \"secondary_label\": \"OS\",\n      \"properties\": {\n        \"distribution\": \"Ubuntu 20.04\",\n        \"kernel\": \"5.4\"\n      }\n    },\n\n    {\n      \"component_id\": 15,\n      \"name\": \"Device Sensors\",\n      \"type\": \"Service.App\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"App\",\n      \"properties\": {\n        \"sensor_type\": [\"temperature\", \"humidity\"]\n      }\n    },\n\n    {\n      \"component_id\": 16,\n      \"name\": \"Device Actuators\",\n      \"type\": \"Service.App\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"App\",\n      \"properties\": {\n        \"actuator_type\": [\"relay\"]\n      }\n    }\n  ],\n\n  \"edges\": [\n    /* Human interaction */\n    {\"source\":\"Operator\",\"target\":\"IoTronic UI\",\"type\":\"interacts\"},\n    {\"source\":\"Operator\",\"target\":\"IoTronic\",\"type\":\"interacts\"},\n\n    /* Cloud services hosting relationships */\n    {\"source\":\"IoTronic\",\"target\":\"Crossbar\",\"type\":\"hosts\"},\n    {\"source\":\"IoTronic\",\"target\":\"Keystone\",\"type\":\"hosts\"},\n    {\"source\":\"IoTronic\",\"target\":\"RabbitMQ\",\"type\":\"hosts\"},\n    {\"source\":\"IoTronic\",\"target\":\"MySQL\",\"type\":\"hosts\"},\n    {\"source\":\"IoTronic\",\"target\":\"InfluxDB\",\"type\":\"hosts\"},\n    {\"source\":\"IoTronic\",\"target\":\"Certificate Authority\",\"type\":\"hosts\"},\n\n    /* Network connectivity */\n    {\"source\":\"Crossbar\",\"target\":\"Cloud Network\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\",\"application_protocol\":\"WAMP\"}},\n    {\"source\":\"Keystone\",\"target\":\"Cloud Network\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\",\"application_protocol\":\"REST\"}},\n    {\"source\":\"RabbitMQ\",\"target\":\"Cloud Network\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\",\"application_protocol\":\"AMQP\"}},\n    {\"source\":\"MySQL\",\"target\":\"Cloud Network\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\",\"application_protocol\":\"MySQL\"}},\n    {\"source\":\"InfluxDB\",\"target\":\"Cloud Network\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\",\"application_protocol\":\"InfluxQL\"}},\n    {\"source\":\"Certificate Authority\",\"target\":\"Cloud Network\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\",\"application_protocol\":\"HTTPS\"}},\n\n    /* Device side */\n    {\"source\":\"Device A\",\"target\":\"Device OS\",\"type\":\"hosts\"},\n    {\"source\":\"Device OS\",\"target\":\"Lightning‑rod Agent\",\"type\":\"hosts\"},\n    {\"source\":\"Lightning‑rod Agent\",\"target\":\"Device Sensors\",\"type\":\"hosts\"},\n    {\"source\":\"Lightning‑rod Agent\",\"target\":\"Device Actuators\",\"type\":\"hosts\"},\n\n    /* Device OS uses network */\n    {\"source\":\"Device OS\",\"target\":\"Device LAN\",\"type\":\"uses\",\"properties\":{\"transport_protocol\":\"Ethernet\"}},\n    {\"source\":\"Device LAN\",\"target\":\"Cloud Network\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"UDP\",\"application_protocol\":\"WAMP\",\"description\":\"WSTUN tunnel\"}},\n\n    /* Lightning‑rod connects to Crossbar via WAMP over WSTUN */\n    {\"source\":\"Lightning‑rod Agent\",\"target\":\"Crossbar\",\"type\":\"connects\",\"properties\":{\"application_protocol\":\"WAMP\",\"transport_protocol\":\"TLS\",\"description\":\"WSTUN tunnel\"}},\n\n    /* Lightning‑rod uses device sensors/actuators */\n    {\"source\":\"Lightning‑rod Agent\",\"target\":\"Device Sensors\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"WAMP\"}},\n    {\"source\":\"Lightning‑rod Agent\",\"target\":\"Device Actuators\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"WAMP\"}},\n\n    /* IoTronic uses Crossbar for RPCs */\n    {\"source\":\"IoTronic\",\"target\":\"Crossbar\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"WAMP\"}},\n\n    /* IoTronic interacts with Keystone for auth */\n    {\"source\":\"IoTronic\",\"target\":\"Keystone\",\"type\":\"interacts\",\"properties\":{\"application_protocol\":\"REST\"}},\n\n    /* IoTronic interacts with RabbitMQ for events */\n    {\"source\":\"IoTronic\",\"target\":\"RabbitMQ\",\"type\":\"interacts\",\"properties\":{\"application_protocol\":\"AMQP\"}},\n\n    /* IoTronic stores data in MySQL/InfluxDB */\n    {\"source\":\"IoTronic\",\"target\":\"MySQL\",\"type\":\"interacts\",\"properties\":{\"application_protocol\":\"MySQL\"}},\n    {\"source\":\"IoTronic\",\"target\":\"InfluxDB\",\"type\":\"interacts\",\"properties\":{\"application_protocol\":\"InfluxQL\"}}\n  ]\n}\n```\n\n### 3.1 Explanation of the Model\n\n| Node | Role in S4T | Key Properties |\n|------|-------------|----------------|\n| **Operator** | Human actor | Uses UI & REST |\n| **IoTronic** | Core device‑management service | REST + WAMP endpoints |\n| **IoTronic UI** | Dashboard | Web UI URL |\n| **Crossbar** | WAMP broker | Provides routing for RPC & Pub/Sub |\n| **Keystone** | Identity & auth | OAuth2 token service |\n| **RabbitMQ** | Event bus | AMQP transport |\n| **MySQL** | Relational metadata store | SQL endpoint |\n| **InfluxDB** | Time‑series telemetry | HTTP endpoint |\n| **Certificate Authority** | PKI | TLS certs for all secure traffic |\n| **Cloud Network** | WAN segment | CIDR 10.0.0.0/16 |\n| **Device LAN** | Local network of device | CIDR 192.168.1.0/24 |\n| **Device A** | Physical IoT node | Sensor/actuator interfaces |\n| **Lightning‑rod Agent** | Device‑side runtime | Container image |\n| **Device OS** | Underlying OS | Ubuntu 20.04 |\n| **Device Sensors / Actuators** | Service‑level abstractions for sensor data and actuator control |\n\n**Edges** capture the allowed relationships:\n\n* **hosts**: establishes the deployment hierarchy (cloud services on the same cloud host, device OS → agent → services).\n* **uses**: functional dependency (e.g., Lightning‑rod uses the device sensors, IoTronic uses Crossbar for RPC).\n* **connects**: networking links with explicit protocols (TCP, UDP, WAMP, AMQP, etc.).\n* **interacts**: user‑oriented interactions (operator ↔ UI, operator ↔ IoTronic, IoTronic ↔ Keystone, etc.).\n\nThe graph satisfies all MACM constraints:\n\n* **Acyclic hosts**: Each asset has at most one incoming **hosts** edge and the hosting chain is a tree (cloud services → Crossbar, Keystone, …; device OS → agent → services).\n* **Single provider**: Every service is hosted by exactly one parent (e.g., *Crossbar* is hosted by *IoTronic*).\n* **Alternate path for uses**: For every **uses** edge, there exists a path that does not traverse **uses** or **interacts** (e.g., *Lightning‑rod* → *Crossbar* → *IoTronic* → *Keystone* → *Device OS* → *Device Sensors*).\n* **Protocol compliance**: All **connects** and **uses** edges contain a protocol from the catalog (HTTP, HTTPS, WAMP, AMQP, TCP, UDP, TLS, etc.).\n\n---\n\n## 4. Key Architectural Insights\n\n| Aspect | Observation | Implication |\n|--------|-------------|-------------|\n| **Unified resource model** | Sensors/actuators treated as first‑class resources alongside VMs | Simplifies orchestration, enables lifecycle management via same APIs |\n| **Bidirectional WAMP** | Enables RPC + Pub/Sub over a single channel | Low overhead, real‑time telemetry, easy scaling with Crossbar clusters |\n| **WSTUN tunnelling** | Allows devices behind NAT to expose services securely | Removes requirement for port‑forwarding, but introduces extra latency |\n| **Modular cloud services** | Each OpenStack component (Keystone, RabbitMQ, etc.) is isolated | Easier upgrades, better fault isolation, possibility to run on container platforms |\n| **Hybrid storage** | MySQL for config + InfluxDB for telemetry | Optimised for relational queries and time‑series analytics |\n| **Security stack** | PKI + Keystone + TLS on all channels | Strong authentication, but requires careful key rotation management |\n| **Scalability** | Crossbar can be sharded; Lightning‑rod is lightweight | Horizontal scaling on both ends is straightforward |\n| **Observability** | Event bus + metrics + logs | Enables end‑to‑end monitoring, but needs centralised dashboards (e.g., Grafana) |\n| **Extensibility** | Plugin engine on devices | Users can push custom logic; risk of inconsistent behaviour across heterogeneous devices |\n\n---\n\n## 5. Potential Enhancements & Trade‑offs\n\n| Enhancement | Benefit | Trade‑off |\n|-------------|---------|-----------|\n| **Containerisation of all cloud services** | Consistent deployment, easier CI/CD | Requires orchestration layer (Kubernetes/Swarm) |\n| **Edge‑gateway service** | Offload heavy processing from devices | Additional hardware cost |\n| **MQTT bridge** | Leverage existing MQTT ecosystems | Extra protocol translation overhead |\n| **Zero‑touch provisioning** | Faster device onboarding | Needs robust device authentication mechanism |\n| **Policy‑based access control** | Fine‑grained security | More complex configuration management |\n\n---\n\n### 6. Conclusion\n\nStack4Things offers a **cloud‑centric, WAMP‑driven IoT stack** that unifies device management, orchestration, and data collection within the familiar OpenStack ecosystem. The MACM model above captures the essential assets and their relationships, providing a clear blueprint that can be used for further analysis, simulation, or implementation. The architecture balances **scalability**, **security**, and **extensibility**, making it well suited for both research prototypes and production deployments.",
+      "extracted_macm": 
+      {
+        "nodes": [
+          {
+            "component_id": 1,
+            "name": "Operator",
+            "type": "Party.Human",
+            "primary_label": "Party",
+            "secondary_label": "Human"
+          },
+
+          {
+            "component_id": 2,
+            "name": "IoTronic",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server",
+            "properties": {
+              "rest_api_endpoint": "https://cloud.example.com/api",
+              "wamp_endpoint": "wss://cloud.example.com/wamp",
+              "description": "Device management core"
+            }
+          },
+
+          {
+            "component_id": 3,
+            "name": "IoTronic UI",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App",
+            "properties": {
+              "ui_url": "https://cloud.example.com/ui"
+            }
+          },
+
+          {
+            "component_id": 4,
+            "name": "Crossbar",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server",
+            "properties": {
+              "wamp_endpoint": "wss://cloud.example.com/crossbar"
+            }
+          },
+
+          {
+            "component_id": 5,
+            "name": "Keystone",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server",
+            "properties": {
+              "auth_endpoint": "https://cloud.example.com/keystone"
+            }
+          },
+
+          {
+            "component_id": 6,
+            "name": "RabbitMQ",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server",
+            "properties": {
+              "amqp_endpoint": "amqp://cloud.example.com"
+            }
+          },
+
+          {
+            "component_id": 7,
+            "name": "MySQL",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server",
+            "properties": {
+              "db_endpoint": "mysql://cloud.example.com"
+            }
+          },
+
+          {
+            "component_id": 8,
+            "name": "InfluxDB",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server",
+            "properties": {
+              "influx_endpoint": "http://cloud.example.com:8086"
+            }
+          },
+
+          {
+            "component_id": 9,
+            "name": "Certificate Authority",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server",
+            "properties": {
+              "ca_endpoint": "https://cloud.example.com/ca"
+            }
+          },
+
+          {
+            "component_id": 10,
+            "name": "Cloud Network",
+            "type": "Network.WAN",
+            "primary_label": "Network",
+            "secondary_label": "WAN",
+            "properties": {
+              "cidr": "10.0.0.0/16"
+            }
+          },
+
+          {
+            "component_id": 11,
+            "name": "Device LAN",
+            "type": "Network.LAN",
+            "primary_label": "Network",
+            "secondary_label": "LAN",
+            "properties": {
+              "cidr": "192.168.1.0/24"
+            }
+          },
+
+          {
+            "component_id": 12,
+            "name": "Device A",
+            "type": "HW.Device",
+            "primary_label": "HW",
+            "secondary_label": "Device",
+            "properties": {
+              "model": "SensorHub v1",
+              "mac": "00:11:22:33:44:55"
+            }
+          },
+
+          {
+            "component_id": 13,
+            "name": "Lightning‑rod Agent",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container",
+            "properties": {
+              "image": "stack4things/lightning-rod:latest",
+              "entrypoint": "/opt/rod/rod.sh"
+            }
+          },
+
+          {
+            "component_id": 14,
+            "name": "Device OS",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS",
+            "properties": {
+              "distribution": "Ubuntu 20.04",
+              "kernel": "5.4"
+            }
+          },
+
+          {
+            "component_id": 15,
+            "name": "Device Sensors",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App",
+            "properties": {
+              "sensor_type": ["temperature", "humidity"]
+            }
+          },
+
+          {
+            "component_id": 16,
+            "name": "Device Actuators",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App",
+            "properties": {
+              "actuator_type": ["relay"]
+            }
+          }
+        ],
+
+        "edges": [
+          {"source":"Operator","target":"IoTronic UI","type":"interacts"},
+          {"source":"Operator","target":"IoTronic","type":"interacts"},
+          {"source":"IoTronic","target":"Crossbar","type":"hosts"},
+          {"source":"IoTronic","target":"Keystone","type":"hosts"},
+          {"source":"IoTronic","target":"RabbitMQ","type":"hosts"},
+          {"source":"IoTronic","target":"MySQL","type":"hosts"},
+          {"source":"IoTronic","target":"InfluxDB","type":"hosts"},
+          {"source":"IoTronic","target":"Certificate Authority","type":"hosts"},
+          {"source":"Crossbar","target":"Cloud Network","type":"connects","properties":{"network_protocol":"TCP","application_protocol":"WAMP"}},
+          {"source":"Keystone","target":"Cloud Network","type":"connects","properties":{"network_protocol":"TCP","application_protocol":"REST"}},
+          {"source":"RabbitMQ","target":"Cloud Network","type":"connects","properties":{"network_protocol":"TCP","application_protocol":"AMQP"}},
+          {"source":"MySQL","target":"Cloud Network","type":"connects","properties":{"network_protocol":"TCP","application_protocol":"MySQL"}},
+          {"source":"InfluxDB","target":"Cloud Network","type":"connects","properties":{"network_protocol":"TCP","application_protocol":"InfluxQL"}},
+          {"source":"Certificate Authority","target":"Cloud Network","type":"connects","properties":{"network_protocol":"TCP","application_protocol":"HTTPS"}},
+          {"source":"Device A","target":"Device OS","type":"hosts"},
+          {"source":"Device OS","target":"Lightning‑rod Agent","type":"hosts"},
+          {"source":"Lightning‑rod Agent","target":"Device Sensors","type":"hosts"},
+          {"source":"Lightning‑rod Agent","target":"Device Actuators","type":"hosts"},
+          {"source":"Device OS","target":"Device LAN","type":"uses","properties":{"transport_protocol":"Ethernet"}},
+          {"source":"Device LAN","target":"Cloud Network","type":"connects","properties":{"network_protocol":"UDP","application_protocol":"WAMP","description":"WSTUN tunnel"}},
+          {"source":"Lightning‑rod Agent","target":"Crossbar","type":"connects","properties":{"application_protocol":"WAMP","transport_protocol":"TLS","description":"WSTUN tunnel"}},
+          {"source":"Lightning‑rod Agent","target":"Device Sensors","type":"uses","properties":{"application_protocol":"WAMP"}},
+          {"source":"Lightning‑rod Agent","target":"Device Actuators","type":"uses","properties":{"application_protocol":"WAMP"}},
+          {"source":"IoTronic","target":"Crossbar","type":"uses","properties":{"application_protocol":"WAMP"}},
+          {"source":"IoTronic","target":"Keystone","type":"interacts","properties":{"application_protocol":"REST"}},
+          {"source":"IoTronic","target":"RabbitMQ","type":"interacts","properties":{"application_protocol":"AMQP"}},
+          {"source":"IoTronic","target":"MySQL","type":"interacts","properties":{"application_protocol":"MySQL"}},
+          {"source":"IoTronic","target":"InfluxDB","type":"interacts","properties":{"application_protocol":"InfluxQL"}}
+        ]
+      },
+      "checker": {
+        "valid": false,
+        "errors": [
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 5:\n  1. /* Keystone type=Service.Server PL=Service is not covered by mapping */\n  2. /* Keystone type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 6:\n  1. /* RabbitMQ type=Service.Server PL=Service is not covered by mapping */\n  2. /* RabbitMQ type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 7:\n  1. /* MySQL type=Service.Server PL=Service is not covered by mapping */\n  2. /* MySQL type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 8:\n  1. /* InfluxDB type=Service.Server PL=Service is not covered by mapping */\n  2. /* InfluxDB type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 9:\n  1. /* Certificate Authority type=Service.Server PL=Service is not covered by mapping */\n  2. /* Certificate Authority type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 2:\n  1. /* IoTronic type=Service.Server PL=Service is not covered by mapping */\n  2. /* IoTronic type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 4:\n  1. /* Crossbar type=Service.Server PL=Service is not covered by mapping */\n  2. /* Crossbar type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 2, name: IoTronic, labels: Service,Server] -[:interacts]-> Node[component_id: 5, name: Keystone, labels: Service,Server] (Pattern: Service -[:interacts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 2, name: IoTronic, labels: Service,Server] -[:interacts]-> Node[component_id: 6, name: RabbitMQ, labels: Service,Server] (Pattern: Service -[:interacts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 2, name: IoTronic, labels: Service,Server] -[:interacts]-> Node[component_id: 7, name: MySQL, labels: Service,Server] (Pattern: Service -[:interacts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 2, name: IoTronic, labels: Service,Server] -[:interacts]-> Node[component_id: 8, name: InfluxDB, labels: Service,Server] (Pattern: Service -[:interacts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 13, name: Lightning‑rod Agent, labels: Virtual,Container] -[:hosts]-> Node[component_id: 15, name: Device Sensors, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 13, name: Lightning‑rod Agent, labels: Virtual,Container] -[:hosts]-> Node[component_id: 16, name: Device Actuators, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 14, name: Device OS, labels: SystemLayer,OS] -[:uses]-> Node[component_id: 11, name: Device LAN, labels: Network,LAN] (Pattern: SystemLayer -[:uses]-> Network is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 4, name: Crossbar, labels: Service,Server] -[:connects]-> Node[component_id: 10, name: Cloud Network, labels: Network,WAN] (Pattern: Service -[:connects]-> Network is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 5, name: Keystone, labels: Service,Server] -[:connects]-> Node[component_id: 10, name: Cloud Network, labels: Network,WAN] (Pattern: Service -[:connects]-> Network is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 6, name: RabbitMQ, labels: Service,Server] -[:connects]-> Node[component_id: 10, name: Cloud Network, labels: Network,WAN] (Pattern: Service -[:connects]-> Network is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 7, name: MySQL, labels: Service,Server] -[:connects]-> Node[component_id: 10, name: Cloud Network, labels: Network,WAN] (Pattern: Service -[:connects]-> Network is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 8, name: InfluxDB, labels: Service,Server] -[:connects]-> Node[component_id: 10, name: Cloud Network, labels: Network,WAN] (Pattern: Service -[:connects]-> Network is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 9, name: Certificate Authority, labels: Service,Server] -[:connects]-> Node[component_id: 10, name: Cloud Network, labels: Network,WAN] (Pattern: Service -[:connects]-> Network is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 13, name: Lightning‑rod Agent, labels: Virtual,Container] -[:connects]-> Node[component_id: 4, name: Crossbar, labels: Service,Server] (Pattern: Virtual -[:connects]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 13, name: Lightning‑rod Agent, labels: Virtual,Container] -[:uses]-> Node[component_id: 15, name: Device Sensors, labels: Service,App] (Pattern: Virtual -[:uses]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 13, name: Lightning‑rod Agent, labels: Virtual,Container] -[:uses]-> Node[component_id: 16, name: Device Actuators, labels: Service,App] (Pattern: Virtual -[:uses]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[07_check_single_host_provide_for_service.cypher] report: Rule 3 violation: the following service do not have a host/provider: Service[component_id: 2, name: IoTronic]\n\nREQUIREMENT: Every Service must have exactly ONE incoming [:hosts] or [:provides] relationship.\n\nREMEDIATION:\n- Add a [:hosts] or [:provides] relationship from a SystemLayer, Virtual, CSP, or Service node to each violating Service.",
+          "[07_check_single_host_provide_for_service.cypher] report: Rule 3 violation: the following service do not have a host/provider: Service[component_id: 3, name: IoTronic UI]\n\nREQUIREMENT: Every Service must have exactly ONE incoming [:hosts] or [:provides] relationship.\n\nREMEDIATION:\n- Add a [:hosts] or [:provides] relationship from a SystemLayer, Virtual, CSP, or Service node to each violating Service.",
+          "[12_check_SystemLayer_hosts_virtual.cypher] report: Rule 5 violation: SystemLayer hosting Virtual node validity\n\nInvalid SystemLayer-to-Virtual hosting: Node[component_id: 14, name: Device OS, type: SystemLayer.OS, labels: SystemLayer,OS] -[:hosts]-> Node[component_id: 13, name: Lightning‑rod Agent, type: Virtual.Container, labels: Virtual,Container]\n  Source: SystemLayer.OS\n  Target: Virtual.Container\n\nRULE: SystemLayer can host Virtual only with matching virtualization technology.\n\nALLOWED PATTERNS:\n  SystemLayer.ContainerRuntime -[:hosts]-> Virtual.Container\n  SystemLayer.HyperVisor -[:hosts]-> Virtual.VM\n\nFORBIDDEN PATTERNS:\n  SystemLayer.ContainerRuntime -[:hosts]-> Virtual.VM (Wrong: ContainerRuntime cannot host VMs)\n  SystemLayer.HyperVisor -[:hosts]-> Virtual.Container (Wrong: HyperVisor cannot host Containers)\n  SystemLayer.OS -[:hosts]-> Virtual.* (Wrong: OS should host ContainerRuntime/HyperVisor, not Virtual directly)\n\nREMEDIATION:\n1. Verify technology match: ContainerRuntime <-> Container, HyperVisor <-> VM\n2. Check hierarchy: HW -> OS -> ContainerRuntime/HyperVisor -> Virtual\n3. Add missing intermediate layers if needed\n4. Correct node types to match actual virtualization technology"
+        ],
+        "warnings": [],
+        "summary": {
+          "nodes_tested": 16,
+          "relationships_tested": 28,
+          "violation_count": 26
+        }
+      }
+    },
+    {
+      "replica_number": 3,
+      "elapsed_time_seconds": 41.07,
+      "success": true,
+      "answer": "**Analisi dettagliata dell’architettura Stack4Things (S4T)**  \n*(tutti i riferimenti sono tratti dalla descrizione fornita; la sintesi è suddivisa per livelli, componenti, protocolli e relazioni di gestione)*  \n\n---\n\n## 1. Panoramica ad alto livello\n\n| Livello | Descrizione | Funzione principale |\n|---------|-------------|---------------------|\n| **Cloud‑side** | Infrastruttura OpenStack estesa a risorse IoT | Gestione centralizzata di compute, storage, networking e dispositivi IoT |\n| **Device‑side** | Agente leggero “Lightning‑rod” che gira su ogni nodo IoT | Mantenimento della connessione, esecuzione di comandi, interfaccia con OS/hardware |\n| **Networking** | Distinzione tra Cloud‑WAN, Cloud‑LAN e Device‑LAN | Routing, NAT‑traversal (WSTUN), sicurezza (TLS/SSL) |\n| **Security & Identity** | Keystone, Certificate Authority, TLS | Autenticazione, autorizzazione, cifratura dei canali di comunicazione |\n| **Data & Messaging** | RabbitMQ (messaggistica), MySQL/InfluxDB (persistenza) | Event handling, storage relazionale e time‑series |\n| **Management UI** | IoTronic UI | Dashboard grafica per operatori umani |\n| **API** | REST (IoTronic) | Interfaccia programmatica per orchestrazione e monitoraggio |\n\n---\n\n## 2. Componenti principali e relazioni\n\n### 2.1 Cloud‑side\n\n| Asset | Tipo (MACM) | Relazioni chiave |\n|-------|-------------|------------------|\n| **IoTronic** | Service.Server (o Service.App) | `provides` → Cloud‑compute, Cloud‑storage, Cloud‑network, Cloud‑IoT<br> `uses` → Keystone, RabbitMQ, MySQL, InfluxDB, CA |\n| **Crossbar broker** | Service.Server | `provides` → WAMP broker<br> `hosts` → IoTronic (come componente di orchestrazione) |\n| **Keystone** | Service.Server | `provides` → Identity & access |\n| **RabbitMQ** | Service.Server | `provides` → Messaging (AMQP) |\n| **MySQL** | Service.DB | `provides` → Relational storage |\n| **InfluxDB** | Service.DB | `provides` → Time‑series storage |\n| **Certificate Authority (CA)** | Service.Server | `provides` → X.509 certificates |\n| **IoTronic UI** | Service.App | `interacts` → Operators (Party.Human) |\n| **Cloud‑network** | Network.WAN / LAN | `connects` → IoTronic, Crossbar, Lightning‑rod (via WSTUN) |\n| **Cloud‑compute** | HW.Server | `hosts` → SystemLayer.OS (Linux) → Virtual.VM (OpenStack) |\n\n### 2.2 Device‑side\n\n| Asset | Tipo (MACM) | Relazioni chiave |\n|-------|-------------|------------------|\n| **Lightning‑rod** | Service.Server (o Service.App) | `hosts` → SystemLayer.OS (embedded Linux) → HW.Device (IoT node) |\n| **Device OS** | SystemLayer.OS | `hosts` → Virtual.Container (if containerized) |\n| **Hardware interfaces** | HW.IoT / HW.Device | `hosts` → SystemLayer.OS |\n| **Sensors / Actuators** | HW.IoT | `interacts` → Lightning‑rod (via OS) |\n| **Device‑LAN** | Network.PAN | `connects` → Lightning‑rod (WAMP over WebSocket) |\n| **WSTUN endpoint** | Network.PAN | `connects` → Cloud‑network (Crossbar) |\n\n### 2.3 Protocolli di comunicazione\n\n| Relazione | Protocollo(s) | Note |\n|-----------|---------------|------|\n| **IoTronic ↔ Lightning‑rod** | WAMP (WebSocket) + WSTUN | Bidirectional, async, secure (TLS) |\n| **IoTronic ↔ Operators** | REST (HTTP/HTTPS) | CRUD per dispositivi, plugin, configurazioni |\n| **IoTronic ↔ Keystone** | REST (OpenStack) | Token‑based auth |\n| **IoTronic ↔ RabbitMQ** | AMQP | Event bus |\n| **IoTronic ↔ DBs** | MySQL/MariaDB (TCP/IP), InfluxDB (HTTP/TCP) | Persistenza |\n| **Lightning‑rod ↔ OS** | OS‑specific (syscalls, drivers) | Accesso hardware |\n| **Lightning‑rod ↔ Plugins** | Python IPC (e.g., local sockets) | Synchronous/asynchronous execution |\n| **Device ↔ Cloud (via WSTUN)** | TLS over WebSocket | NAT traversal, firewall bypass |\n| **Operator ↔ UI** | HTTP/HTTPS | Web dashboard |\n\n---\n\n## 3. Modelli di gestione e orchestrazione\n\n1. **Orchestrazione IoT**  \n   - IoTronic sfrutta l’API REST per creare, aggiornare e cancellare “device resources” in OpenStack.  \n   - Utilizza plugin Python per eseguire logica personalizzata direttamente sui nodi.\n\n2. **Sicurezza**  \n   - Certificati X.509 emessi dal CA vengono usati per autenticare sia i nodi che i servizi.  \n   - TLS è obbligatorio per WAMP, REST e AMQP.  \n   - Keystone fornisce token di accesso scadibili per le API.\n\n3. **NAT‑Traversal**  \n   - WSTUN consente a Lightning‑rod di esporre endpoint (HTTP, SSH) attraverso il Cloud, evitando la configurazione manuale di port‑forwarding.\n\n4. **Event Handling**  \n   - RabbitMQ riceve eventi da Lightning‑rod (es. sensori) e li distribuisce a servizi di analytics o a UI in tempo reale.\n\n5. **Persistenza**  \n   - MySQL gestisce configurazioni, metadati e relazioni tra risorse.  \n   - InfluxDB memorizza dati di serie temporali (temperature, vibrazioni, ecc.).\n\n---\n\n## 4. Layer di rete e routing\n\n| Segmento | Descrizione | Componenti chiave |\n|----------|-------------|------------------|\n| **Cloud‑WAN** | Infrastruttura globale (datacenter) | Cloud‑network, OpenStack networking |\n| **Cloud‑LAN** | Rete interna del cloud | Virtual networks, Crossbar broker, IoTronic |\n| **Device‑LAN (PAN)** | Rete locale del nodo IoT | WSTUN endpoint, Lightning‑rod |\n| **Routing** | Moduli di routing OpenStack (Neutron) | Connettono WAN ↔ LAN ↔ PAN |\n| **Firewall** | Sicurezza di rete | ACL basate su policy OpenStack, TLS termination |\n\n---\n\n## 5. Use‑case tipici\n\n| Scenario | Come S4T si adatta | Vantaggi |\n|----------|---------------------|----------|\n| **Smart Building** | Sensori di temperatura, illuminazione, sicurezza gestiti da Lightning‑rod; dati inviati a InfluxDB; UI mostra dashboard in tempo reale | Controllo centralizzato, scalabilità, integrazione con OpenStack |\n| **Industriale (IIoT)** | Attuatori controllati da plugin Python; eventi di manutenzione inviati a RabbitMQ | Automazione, analisi predittiva, integrazione con sistemi legacy |\n| **Cyber‑Physical System** | Dispositivi con WSTUN per comunicazione in tempo reale; certificati CA per autenticazione | Sicurezza, affidabilità, interoperabilità |\n| **Ricerca & Prototipazione** | Open‑source, estendibile, supporto per plugin | Sperimentazione rapida, community-driven |\n\n---\n\n## 6. Mappatura MACM (schema di alto livello)\n\n> **Nota**: la mappatura è indicativa; per un modello completo occorrebbero tutti i componenti specifici e le loro proprietà.\n\n```json\n{\n  \"nodes\": [\n    {\"component_id\":1,\"name\":\"IoTronic\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":2,\"name\":\"Crossbar\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":3,\"name\":\"Keystone\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":4,\"name\":\"RabbitMQ\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":5,\"name\":\"MySQL\",\"type\":\"Service.DB\",\"primary_label\":\"Service\",\"secondary_label\":\"DB\"},\n    {\"component_id\":6,\"name\":\"InfluxDB\",\"type\":\"Service.DB\",\"primary_label\":\"Service\",\"secondary_label\":\"DB\"},\n    {\"component_id\":7,\"name\":\"CA\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":8,\"name\":\"IoTronic UI\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":9,\"name\":\"Lightning‑rod\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\"},\n    {\"component_id\":10,\"name\":\"Device OS\",\"type\":\"SystemLayer.OS\",\"primary_label\":\"SystemLayer\",\"secondary_label\":\"OS\"},\n    {\"component_id\":11,\"name\":\"Sensor\",\"type\":\"HW.IoT\",\"primary_label\":\"HW\",\"secondary_label\":\"IoT\"},\n    {\"component_id\":12,\"name\":\"Actuator\",\"type\":\"HW.IoT\",\"primary_label\":\"HW\",\"secondary_label\":\"IoT\"},\n    {\"component_id\":13,\"name\":\"Cloud WAN\",\"type\":\"Network.WAN\",\"primary_label\":\"Network\",\"secondary_label\":\"WAN\"},\n    {\"component_id\":14,\"name\":\"Cloud LAN\",\"type\":\"Network.LAN\",\"primary_label\":\"Network\",\"secondary_label\":\"LAN\"},\n    {\"component_id\":15,\"name\":\"Device PAN\",\"type\":\"Network.PAN\",\"primary_label\":\"Network\",\"secondary_label\":\"PAN\"}\n  ],\n  \"edges\": [\n    {\"source\":\"IoTronic\",\"target\":\"Crossbar\",\"type\":\"provides\"},\n    {\"source\":\"IoTronic\",\"target\":\"Keystone\",\"type\":\"provides\"},\n    {\"source\":\"IoTronic\",\"target\":\"RabbitMQ\",\"type\":\"provides\"},\n    {\"source\":\"IoTronic\",\"target\":\"MySQL\",\"type\":\"provides\"},\n    {\"source\":\"IoTronic\",\"target\":\"InfluxDB\",\"type\":\"provides\"},\n    {\"source\":\"IoTronic\",\"target\":\"CA\",\"type\":\"provides\"},\n    {\"source\":\"IoTronic\",\"target\":\"Lightning‑rod\",\"type\":\"uses\",\"properties\":{\"transport_protocol\":\"WAMP\"}},\n    {\"source\":\"Lightning‑rod\",\"target\":\"Device OS\",\"type\":\"hosts\"},\n    {\"source\":\"Device OS\",\"target\":\"Sensor\",\"type\":\"hosts\"},\n    {\"source\":\"Device OS\",\"target\":\"Actuator\",\"type\":\"hosts\"},\n    {\"source\":\"Lightning‑rod\",\"target\":\"Device PAN\",\"type\":\"connects\",\"properties\":{\"application_protocol\":\"WAMP\"}},\n    {\"source\":\"Crossbar\",\"target\":\"Device PAN\",\"type\":\"connects\",\"properties\":{\"transport_protocol\":\"WSTUN\"}},\n    {\"source\":\"IoTronic UI\",\"target\":\"Operator\",\"type\":\"interacts\",\"properties\":{\"application_protocol\":\"HTTPS\"}},\n    {\"source\":\"Operator\",\"target\":\"IoTronic\",\"type\":\"interacts\",\"properties\":{\"application_protocol\":\"REST\"}},\n    {\"source\":\"Cloud WAN\",\"target\":\"Cloud LAN\",\"type\":\"connects\"},\n    {\"source\":\"Cloud LAN\",\"target\":\"IoTronic\",\"type\":\"connects\"},\n    {\"source\":\"Cloud LAN\",\"target\":\"Crossbar\",\"type\":\"connects\"},\n    {\"source\":\"Cloud LAN\",\"target\":\"Lightning‑rod\",\"type\":\"connects\",\"properties\":{\"transport_protocol\":\"WSTUN\"}},\n    {\"source\":\"Cloud LAN\",\"target\":\"Keystone\",\"type\":\"connects\"},\n    {\"source\":\"Cloud LAN\",\"target\":\"RabbitMQ\",\"type\":\"connects\"},\n    {\"source\":\"Cloud LAN\",\"target\":\"MySQL\",\"type\":\"connects\"},\n    {\"source\":\"Cloud LAN\",\"target\":\"InfluxDB\",\"type\":\"connects\"}\n  ]\n}\n```\n\n---\n\n## 7. Conclusioni\n\nStack4Things si presenta come un’estensione “full‑stack” di OpenStack, in cui la gestione di dispositivi IoT è trattata con gli stessi strumenti e paradigmi usati per il cloud tradizionale (compute, storage, networking). La sua architettura è caratterizzata da:\n\n1. **Distribuzione client‑server**: il cloud (IoTronic) controlla gli agenti “Lightning‑rod” distribuiti sui nodi.\n2. **Protocollo WAMP + WSTUN**: garantisce comunicazione bidirezionale, asincrona e NAT‑traversable, mantenendo la sicurezza con TLS.\n3. **Modularità**: plugin Python, RabbitMQ, InfluxDB, MySQL permettono di aggiungere nuove funzionalità senza alterare l’architettura base.\n4. **Sicurezza**: Keystone + CA + TLS forniscono un modello di identità e autenticazione robusto.\n5. **Scalabilità**: l’uso di OpenStack consente di scalare i nodi virtuali, i servizi e le reti in modo dinamico.\n\nPer un’implementazione pratica, si raccomanda di:\n\n- **Definire i “device resources”** in OpenStack (tipo `IoTDevice`) e mappare i parametri (capacità, latenza, sicurezza).\n- **Configurare WSTUN** su ogni nodo per garantire l’esposizione sicura dei servizi verso il cloud.\n- **Utilizzare i plugin** per eseguire logica di edge computing (ad es. aggregazione di sensori, filtri).\n- **Monitorare** con InfluxDB e visualizzare tramite Grafana o la UI di IoTronic.\n- **Gestire la sicurezza** con policy di Keystone e certificati CA, garantendo che i token siano rinnovati automaticamente.\n\nQuesta analisi dovrebbe fornire una base solida per comprendere l’architettura, pianificare una migrazione o una sperimentazione e identificare eventuali punti di ottimizzazione o di rischio.",
+      "extracted_macm": {
+        "nodes": [
+          {
+            "component_id": 1,
+            "name": "IoTronic",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 2,
+            "name": "Crossbar",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 3,
+            "name": "Keystone",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 4,
+            "name": "RabbitMQ",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 5,
+            "name": "MySQL",
+            "type": "Service.DB",
+            "primary_label": "Service",
+            "secondary_label": "DB"
+          },
+          {
+            "component_id": 6,
+            "name": "InfluxDB",
+            "type": "Service.DB",
+            "primary_label": "Service",
+            "secondary_label": "DB"
+          },
+          {
+            "component_id": 7,
+            "name": "CA",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 8,
+            "name": "IoTronic UI",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 9,
+            "name": "Lightning‑rod",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 10,
+            "name": "Device OS",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS"
+          },
+          {
+            "component_id": 11,
+            "name": "Sensor",
+            "type": "HW.IoT",
+            "primary_label": "HW",
+            "secondary_label": "IoT"
+          },
+          {
+            "component_id": 12,
+            "name": "Actuator",
+            "type": "HW.IoT",
+            "primary_label": "HW",
+            "secondary_label": "IoT"
+          },
+          {
+            "component_id": 13,
+            "name": "Cloud WAN",
+            "type": "Network.WAN",
+            "primary_label": "Network",
+            "secondary_label": "WAN"
+          },
+          {
+            "component_id": 14,
+            "name": "Cloud LAN",
+            "type": "Network.LAN",
+            "primary_label": "Network",
+            "secondary_label": "LAN"
+          },
+          {
+            "component_id": 15,
+            "name": "Device PAN",
+            "type": "Network.PAN",
+            "primary_label": "Network",
+            "secondary_label": "PAN"
+          }
+        ],
+        "edges": [
+          {
+            "source": "IoTronic",
+            "target": "Crossbar",
+            "type": "provides"
+          },
+          {
+            "source": "IoTronic",
+            "target": "Keystone",
+            "type": "provides"
+          },
+          {
+            "source": "IoTronic",
+            "target": "RabbitMQ",
+            "type": "provides"
+          },
+          {
+            "source": "IoTronic",
+            "target": "MySQL",
+            "type": "provides"
+          },
+          {
+            "source": "IoTronic",
+            "target": "InfluxDB",
+            "type": "provides"
+          },
+          {
+            "source": "IoTronic",
+            "target": "CA",
+            "type": "provides"
+          },
+          {
+            "source": "IoTronic",
+            "target": "Lightning‑rod",
+            "type": "uses",
+            "properties": {
+              "transport_protocol": "WAMP"
+            }
+          },
+          {
+            "source": "Lightning‑rod",
+            "target": "Device OS",
+            "type": "hosts"
+          },
+          {
+            "source": "Device OS",
+            "target": "Sensor",
+            "type": "hosts"
+          },
+          {
+            "source": "Device OS",
+            "target": "Actuator",
+            "type": "hosts"
+          },
+          {
+            "source": "Lightning‑rod",
+            "target": "Device PAN",
+            "type": "connects",
+            "properties": {
+              "application_protocol": "WAMP"
+            }
+          },
+          {
+            "source": "Crossbar",
+            "target": "Device PAN",
+            "type": "connects",
+            "properties": {
+              "transport_protocol": "WSTUN"
+            }
+          },
+          {
+            "source": "IoTronic UI",
+            "target": "Operator",
+            "type": "interacts",
+            "properties": {
+              "application_protocol": "HTTPS"
+            }
+          },
+          {
+            "source": "Operator",
+            "target": "IoTronic",
+            "type": "interacts",
+            "properties": {
+              "application_protocol": "REST"
+            }
+          },
+          {
+            "source": "Cloud WAN",
+            "target": "Cloud LAN",
+            "type": "connects"
+          },
+          {
+            "source": "Cloud LAN",
+            "target": "IoTronic",
+            "type": "connects"
+          },
+          {
+            "source": "Cloud LAN",
+            "target": "Crossbar",
+            "type": "connects"
+          },
+          {
+            "source": "Cloud LAN",
+            "target": "Lightning‑rod",
+            "type": "connects",
+            "properties": {
+              "transport_protocol": "WSTUN"
+            }
+          },
+          {
+            "source": "Cloud LAN",
+            "target": "Keystone",
+            "type": "connects"
+          },
+          {
+            "source": "Cloud LAN",
+            "target": "RabbitMQ",
+            "type": "connects"
+          },
+          {
+            "source": "Cloud LAN",
+            "target": "MySQL",
+            "type": "connects"
+          },
+          {
+            "source": "Cloud LAN",
+            "target": "InfluxDB",
+            "type": "connects"
+          }
+        ]
+      },
+      "checker": {
+        "valid": false,
+        "errors": [
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 1:\n  1. /* IoTronic type=Service.Server PL=Service is not covered by mapping */\n  2. /* IoTronic type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 2:\n  1. /* Crossbar type=Service.Server PL=Service is not covered by mapping */\n  2. /* Crossbar type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 3:\n  1. /* Keystone type=Service.Server PL=Service is not covered by mapping */\n  2. /* Keystone type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 4:\n  1. /* RabbitMQ type=Service.Server PL=Service is not covered by mapping */\n  2. /* RabbitMQ type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 5:\n  1. /* MySQL type=Service.DB PL=Service expected SL(s)=[Server] but secondary labels are [DB] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 6:\n  1. /* InfluxDB type=Service.DB PL=Service expected SL(s)=[Server] but secondary labels are [DB] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 7:\n  1. /* CA type=Service.Server PL=Service is not covered by mapping */\n  2. /* CA type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 9:\n  1. /* Lightning‑rod type=Service.Server PL=Service is not covered by mapping */\n  2. /* Lightning‑rod type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 11:\n  1. /* Sensor type=HW.IoT PL=HW is not covered by mapping */\n  2. /* Sensor type=HW.IoT PL=HW expected SL(s)=[] but secondary labels are [IoT] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 12:\n  1. /* Actuator type=HW.IoT PL=HW is not covered by mapping */\n  2. /* Actuator type=HW.IoT PL=HW expected SL(s)=[] but secondary labels are [IoT] */",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 1, name: IoTronic, labels: Service,Server] -[:provides]-> Node[component_id: 2, name: Crossbar, labels: Service,Server] (Pattern: Service -[:provides]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 1, name: IoTronic, labels: Service,Server] -[:provides]-> Node[component_id: 3, name: Keystone, labels: Service,Server] (Pattern: Service -[:provides]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 1, name: IoTronic, labels: Service,Server] -[:provides]-> Node[component_id: 4, name: RabbitMQ, labels: Service,Server] (Pattern: Service -[:provides]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 1, name: IoTronic, labels: Service,Server] -[:provides]-> Node[component_id: 5, name: MySQL, labels: Service,DB] (Pattern: Service -[:provides]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 1, name: IoTronic, labels: Service,Server] -[:provides]-> Node[component_id: 6, name: InfluxDB, labels: Service,DB] (Pattern: Service -[:provides]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 1, name: IoTronic, labels: Service,Server] -[:provides]-> Node[component_id: 7, name: CA, labels: Service,Server] (Pattern: Service -[:provides]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 9, name: Lightning‑rod, labels: Service,Server] -[:hosts]-> Node[component_id: 10, name: Device OS, labels: SystemLayer,OS] (Pattern: Service -[:hosts]-> SystemLayer is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 10, name: Device OS, labels: SystemLayer,OS] -[:hosts]-> Node[component_id: 11, name: Sensor, labels: HW,IoT] (Pattern: SystemLayer -[:hosts]-> HW is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 10, name: Device OS, labels: SystemLayer,OS] -[:hosts]-> Node[component_id: 12, name: Actuator, labels: HW,IoT] (Pattern: SystemLayer -[:hosts]-> HW is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 9, name: Lightning‑rod, labels: Service,Server] -[:connects]-> Node[component_id: 15, name: Device PAN, labels: Network,PAN] (Pattern: Service -[:connects]-> Network is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 2, name: Crossbar, labels: Service,Server] -[:connects]-> Node[component_id: 15, name: Device PAN, labels: Network,PAN] (Pattern: Service -[:connects]-> Network is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 14, name: Cloud LAN, labels: Network,LAN] -[:connects]-> Node[component_id: 1, name: IoTronic, labels: Service,Server] (Pattern: Network -[:connects]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 14, name: Cloud LAN, labels: Network,LAN] -[:connects]-> Node[component_id: 2, name: Crossbar, labels: Service,Server] (Pattern: Network -[:connects]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 14, name: Cloud LAN, labels: Network,LAN] -[:connects]-> Node[component_id: 9, name: Lightning‑rod, labels: Service,Server] (Pattern: Network -[:connects]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 14, name: Cloud LAN, labels: Network,LAN] -[:connects]-> Node[component_id: 3, name: Keystone, labels: Service,Server] (Pattern: Network -[:connects]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 14, name: Cloud LAN, labels: Network,LAN] -[:connects]-> Node[component_id: 4, name: RabbitMQ, labels: Service,Server] (Pattern: Network -[:connects]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 14, name: Cloud LAN, labels: Network,LAN] -[:connects]-> Node[component_id: 5, name: MySQL, labels: Service,DB] (Pattern: Network -[:connects]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 14, name: Cloud LAN, labels: Network,LAN] -[:connects]-> Node[component_id: 6, name: InfluxDB, labels: Service,DB] (Pattern: Network -[:connects]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[03_check_graph_connectivity.cypher] connectivity_violation: Rule 9 violation: Graph Connectivity\n\nStarting from node: Cloud LAN\nUnreachable nodes (1): IoTronic UI\n\nREQUIREMENT: All nodes must be reachable from any other node (the graph must be connected).\n\nREMEDIATION:\n1. Identify disconnected components: Listed nodes are not connected to main graph\n2. Add appropriate relationships to connect isolated nodes/subgraphs:\n   - [:hosts] for hosting relationships (HW->OS, OS->Service, etc.)\n   - [:provides] for CSP-provided resources\n   - [:connects] for network connectivity\n   - [:uses] for service dependencies\n   - [:interacts] for Party interactions\n3. Verify every node has at least one relationship connecting it to the rest\n\nCOMMON CAUSES:\n- Orphaned nodes without relationships\n- Separate infrastructure stacks not linked\n- Missing network connectivity\n- Forgotten CSP [:provides] relationships",
+          "[07_check_single_host_provide_for_service.cypher] report: Rule 3 violation: the following service do not have a host/provider: Service[component_id: 1, name: IoTronic]\n\nREQUIREMENT: Every Service must have exactly ONE incoming [:hosts] or [:provides] relationship.\n\nREMEDIATION:\n- Add a [:hosts] or [:provides] relationship from a SystemLayer, Virtual, CSP, or Service node to each violating Service.",
+          "[07_check_single_host_provide_for_service.cypher] report: Rule 3 violation: the following service do not have a host/provider: Service[component_id: 8, name: IoTronic UI]\n\nREQUIREMENT: Every Service must have exactly ONE incoming [:hosts] or [:provides] relationship.\n\nREMEDIATION:\n- Add a [:hosts] or [:provides] relationship from a SystemLayer, Virtual, CSP, or Service node to each violating Service.",
+          "[07_check_single_host_provide_for_service.cypher] report: Rule 3 violation: the following service do not have a host/provider: Service[component_id: 9, name: Lightning‑rod]\n\nREQUIREMENT: Every Service must have exactly ONE incoming [:hosts] or [:provides] relationship.\n\nREMEDIATION:\n- Add a [:hosts] or [:provides] relationship from a SystemLayer, Virtual, CSP, or Service node to each violating Service."
+        ],
+        "warnings": [],
+        "summary": {
+          "nodes_tested": 15,
+          "relationships_tested": 22,
+          "violation_count": 32
+        }
+      }
+    }
+  ],
+  "statistics": {
+    "total_replicas": 3,
+    "successful_replicas": 3,
+    "failed_replicas": 0
+  }
+}

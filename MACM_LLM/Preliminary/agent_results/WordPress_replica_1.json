@@ -1,0 +1,960 @@
+{
+  "success": true,
+  "output": "**\u2705 MACM Model successfully generated and validated**\n\nThe following Neo4j Cypher statements create the complete, constraint\u2011compliant graph:\n\n```cypher\nCREATE (CloudProvider:CSP {component_id: '1', name: 'CloudProvider', type: 'CSP', primary_label: 'CSP'}),\n       (Internet:Network:WAN {component_id: '2', name: 'Internet', type: 'Network.WAN', primary_label: 'Network', secondary_label: 'WAN'}),\n       (InternalLAN:Network:LAN {component_id: '3', name: 'InternalLAN', type: 'Network.LAN', primary_label: 'Network', secondary_label: 'LAN'}),\n       (WordPressVM:Virtual:VM {component_id: '4', name: 'WordPressVM', type: 'Virtual.VM', primary_label: 'Virtual', secondary_label: 'VM'}),\n       (MySQLVM:Virtual:VM {component_id: '5', name: 'MySQLVM', type: 'Virtual.VM', primary_label: 'Virtual', secondary_label: 'VM'}),\n       (LBVM:Virtual:VM {component_id: '6', name: 'LBVM', type: 'Virtual.VM', primary_label: 'Virtual', secondary_label: 'VM'}),\n       (WordPressOS:SystemLayer:OS {component_id: '7', name: 'WordPressOS', type: 'SystemLayer.OS', primary_label: 'SystemLayer', secondary_label: 'OS'}),\n       (MySQLOS:SystemLayer:OS {component_id: '8', name: 'MySQLOS', type: 'SystemLayer.OS', primary_label: 'SystemLayer', secondary_label: 'OS'}),\n       (LBOS:SystemLayer:OS {component_id: '9', name: 'LBOS', type: 'SystemLayer.OS', primary_label: 'SystemLayer', secondary_label: 'OS'}),\n       (WordPressApp:Service:Server {component_id: '10', name: 'WordPressApp', type: 'Service.Web', primary_label: 'Service', secondary_label: 'Server'}),\n       (MySQLDB:Service:Server {component_id: '11', name: 'MySQLDB', type: 'Service.DB', primary_label: 'Service', secondary_label: 'Server'}),\n       (LoadBalancerService:Service:Server {component_id: '12', name: 'LoadBalancerService', type: 'Service.Web', primary_label: 'Service', secondary_label: 'Server'}),\n\n       (CloudProvider)-[:provides {}]->(WordPressVM),\n       (CloudProvider)-[:provides {}]->(MySQLVM),\n       (CloudProvider)-[:provides {}]->(LBVM),\n       (CloudProvider)-[:provides {}]->(Internet),\n       (CloudProvider)-[:provides {}]->(InternalLAN),\n\n       (WordPressVM)-[:hosts {}]->(WordPressOS),\n       (MySQLVM)-[:hosts {}]->(MySQLOS),\n       (LBVM)-[:hosts {}]->(LBOS),\n\n       (WordPressOS)-[:hosts {}]->(WordPressApp),\n       (MySQLOS)-[:hosts {}]->(MySQLDB),\n       (LBOS)-[:hosts {}]->(LoadBalancerService),\n\n       (WordPressApp)-[:uses {}]->(MySQLDB),\n       (LoadBalancerService)-[:uses {}]->(WordPressApp),\n\n       (InternalLAN)-[:connects {}]->(WordPressVM),\n       (InternalLAN)-[:connects {}]->(MySQLVM),\n       (InternalLAN)-[:connects {}]->(LBVM);\n```\n\nAll 12 nodes and 16 relationships satisfy the MACM constraints (no validation errors or warnings).  \nFeel free to run the Cypher above in your Neo4j environment to instantiate the model.",
+  "intermediate_steps": [
+    {
+      "action": "tool='checkers_get_database_constraints' tool_input={} log='\\nInvoking: `checkers_get_database_constraints` with `{}`\\n\\n\\n' message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:49:16.641234603Z', 'done': True, 'done_reason': 'stop', 'total_duration': 3304858887, 'load_duration': 240201103, 'prompt_eval_count': 1598, 'prompt_eval_duration': 691474654, 'eval_count': 231, 'eval_duration': 2260282721, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8b9f-2ddc-73c3-888f-35c1aaee90e9', tool_calls=[{'name': 'checkers_get_database_constraints', 'args': {}, 'id': '9cce83b7-aec1-43f2-92ce-e77f7507092f', 'type': 'tool_call'}], usage_metadata={'input_tokens': 1598, 'output_tokens': 231, 'total_tokens': 1829}, tool_call_chunks=[{'name': 'checkers_get_database_constraints', 'args': '{}', 'id': '9cce83b7-aec1-43f2-92ce-e77f7507092f', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='9cce83b7-aec1-43f2-92ce-e77f7507092f'",
+      "observation": "{'title': 'MACM database constraints', 'summary': [{'name': 'Required node properties', 'short': 'All nodes must have component_id (numeric string >0), primary_label (string), and type (string). Validate properties before insertion.'}, {'name': 'Asset type validity', 'short': 'Primary label must match node type prefix; secondary labels must follow predefined mappings (e.g., HW.Server needs [HW, Server] labels).'}, {'name': 'Single hosting per asset', 'short': 'Each asset can have at most one incoming hosts/provides relationship. Remove duplicate hosts if multiple exist.'}, {'name': 'Mandatory host for Service', 'short': 'Each Service must have exactly one incoming hosts/provides relationship (from SystemLayer/Virtual/Service or CSP).'}, {'name': 'Alternate path for uses', 'short': 'For every (A)-[:uses]->(B) there must exist an alternate path via hosts/provides/connects (not uses). Ensure infrastructure connectivity.'}, {'name': 'SystemLayer -> SystemLayer hosting', 'short': 'Only SystemLayer.OS may host SystemLayer.ContainerRuntime or SystemLayer.HyperVisor. Virtualization layers require an OS.'}, {'name': 'SystemLayer -> Virtual hosting', 'short': 'ContainerRuntime hosts Virtual.Container; HyperVisor hosts Virtual.VM. Match virtualization technology types.'}, {'name': 'SystemLayer -> Service hosting', 'short': 'Only SystemLayer.Firmware and SystemLayer.OS may directly host Services. Use Virtual nodes for containerized services.'}, {'name': 'Virtual -> SystemLayer hosting', 'short': 'Virtual nodes may only host base SystemLayer (OS or Firmware). VMs typically host an OS which then hosts services.'}, {'name': 'HW -> SystemLayer restrictions', 'short': 'Hardware cannot directly host SystemLayer.ContainerRuntime; an OS must mediate (HW->OS->ContainerRuntime layering).'}, {'name': 'Graph connectivity', 'short': 'Model must be connected: all nodes reachable in undirected graph. Link isolated components with appropriate relationships.'}, {'name': 'Mandatory host for SystemLayer', 'short': 'Each SystemLayer must have exactly one incoming hosts/provides. OS hosted by HW/Virtual; ContainerRuntime/HyperVisor by OS.'}, {'name': 'Mandatory host for Virtual', 'short': 'Each Virtual node must have at least one incoming hosts/provides (from ContainerRuntime/HyperVisor or CSP). Virtual resources require infrastructure.'}, {'name': 'Hosts acyclicity', 'short': 'The hosts hierarchy must be acyclic (no circular containment). Use [:uses] for dependencies, [:hosts] for containment only.'}, {'name': 'Relationship pattern validity', 'short': 'Only allowed patterns between primary labels are permitted: Party-interacts-*, Service-uses-Service/Virtual, SystemLayer-hosts-*, HW-hosts-HW/SystemLayer, CSP-provides-*, Network-connects-*.'}]}"
+    },
+    {
+      "action": "tool='catalogs_get_asset_types' tool_input={} log='\\nInvoking: `catalogs_get_asset_types` with `{}`\\n\\n\\n' message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:49:30.011796842Z', 'done': True, 'done_reason': 'stop', 'total_duration': 13131172931, 'load_duration': 247894281, 'prompt_eval_count': 2244, 'prompt_eval_duration': 326419403, 'eval_count': 1211, 'eval_duration': 11961509314, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8b9f-3bb4-75d2-ac6b-15088ed9a96b', tool_calls=[{'name': 'catalogs_get_asset_types', 'args': {}, 'id': 'f10f2295-5459-4927-8582-042fbf9a3e03', 'type': 'tool_call'}], usage_metadata={'input_tokens': 2244, 'output_tokens': 1211, 'total_tokens': 3455}, tool_call_chunks=[{'name': 'catalogs_get_asset_types', 'args': '{}', 'id': 'f10f2295-5459-4927-8582-042fbf9a3e03', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='f10f2295-5459-4927-8582-042fbf9a3e03'",
+      "observation": "[{'type': 'Party.Human', 'description': 'A user or external actor interacting with the system.'}, {'type': 'Party.LegalEntity', 'description': 'A legally recognized individual or organization with rights and obligations.'}, {'type': 'Party.Group', 'description': 'A collection of related entities or individuals acting as a unified organizational unit.'}, {'type': 'CSP', 'description': 'A service provider offering communication network connectivity.'}, {'type': 'HW.MEC', 'description': 'A Multi-Access Edge Computing device that processes data near the user.'}, {'type': 'HW.Chassis', 'description': 'A physical enclosure housing hardware components like servers or network devices.'}, {'type': 'HW.GCS', 'description': 'A ground control station for managing remote devices or drones.'}, {'type': 'HW.HDI', 'description': 'Interface for human interaction with a device through input and output mechanisms.'}, {'type': 'HW.IoT.Device', 'description': 'An Internet of Things device with connectivity and automation capabilities.'}, {'type': 'HW.IoT.Gateway', 'description': 'Device that connects IoT devices to external networks, handling protocol translation, aggregation, and preliminary data processing.'}, {'type': 'HW.Router', 'description': 'A physical network device that forwards data packets between different networks, directing traffic based on IP addresses.'}, {'type': 'HW.Device', 'description': 'A general-purpose hardware device used in various technological contexts.'}, {'type': 'HW.Server', 'description': 'A hardware system providing computing and storage services.'}, {'type': 'HW.UE', 'description': 'A user equipment device, such as a smartphone.'}, {'type': 'HW.Microcontroller', 'description': 'A small integrated circuit used to control embedded systems.'}, {'type': 'HW.SOC', 'description': 'A System-on-Chip integrating multiple hardware components into a single circuit.'}, {'type': 'HW.Raspberry', 'description': 'A low-cost microcomputer used for development and automation.'}, {'type': 'HW.PC', 'description': 'A personal computer used for local or network-based tasks.'}, {'type': 'HW.PC.LoginNode', 'description': 'A server node handling user login management in a computing cluster.'}, {'type': 'HW.PC.DataStorageDisk', 'description': 'A data storage disk used in servers or networked systems.'}, {'type': 'HW.PC.SchedulerNode', 'description': 'A scheduler node managing workload distribution in a cluster.'}, {'type': 'HW.PC.ComputeNode', 'description': 'A compute node used for processing in a cluster environment.'}, {'type': 'Network', 'description': 'A generic Network.'}, {'type': 'Network.WAN', 'description': 'A wide-area network connecting multiple locations or regions.'}, {'type': 'Network.LAN', 'description': 'A local area network that enables communication between devices within a limited geographic area, such as a home or data center.'}, {'type': 'Network.Wired', 'description': 'A wired local area network using physical connections.'}, {'type': 'Network.WiFi', 'description': 'A wireless local area network (WiFi) for device connectivity.'}, {'type': 'Network.Virtual', 'description': 'A virtual network created by the container runtime to enable isolated communication between containers and with the host system.'}, {'type': 'Network.PAN', 'description': 'A personal area network for short-range communication, such as wearables.'}, {'type': 'Network.RAN', 'description': 'Radio network infrastructure enabling wireless communication between user devices and core networks.'}, {'type': 'Network.Core', 'description': 'The core infrastructure of a 5G network for managing data traffic.'}, {'type': 'SystemLayer.OS', 'description': 'An operating system managing hardware and software resources.'}, {'type': 'SystemLayer.Firmware', 'description': 'A firmware service that controls low-level hardware functions.'}, {'type': 'SystemLayer.HyperVisor', 'description': 'Software or firmware layer that creates and manages virtual machines by abstracting and allocating physical hardware resources.'}, {'type': 'SystemLayer.ContainerRuntime', 'description': 'Software component that manages the lifecycle and execution of containers on a host system.'}, {'type': 'Virtual.VM', 'description': 'A virtual machine service used in different infrastructure.'}, {'type': 'Virtual.Container', 'description': 'Application service running in an isolated, portable, and scalable container environment.'}, {'type': 'Service', 'description': 'A generic Service.'}, {'type': 'Service.5G.RAN', 'description': 'Logical service managing radio access functionalities and control over the RAN infrastructure.'}, {'type': 'Service.5G.AMF', 'description': 'A 5G service managing user registration and mobility (AMF).'}, {'type': 'Service.5G.AUSF', 'description': 'A 5G service handling authentication and security (AUSF).'}, {'type': 'Service.5G.NEF', 'description': 'A 5G service exposing network functions to applications (NEF).'}, {'type': 'Service.5G.NRF', 'description': 'A 5G service acting as the network function repository (NRF).'}, {'type': 'Service.5G.NSSF', 'description': 'A 5G service managing network slicing (NSSF).'}, {'type': 'Service.5G.NWDAF', 'description': 'A 5G service providing network analytics (NWDAF).'}, {'type': 'Service.5G.PCF', 'description': 'A 5G policy control service (PCF).'}, {'type': 'Service.5G.UDM', 'description': 'A 5G service handling user data management (UDM).'}, {'type': 'Service.5G.UPF', 'description': 'A 5G service managing packet forwarding (UPF).'}, {'type': 'Service.App', 'description': 'A general-purpose application service that consumes data, interfaces with other services, or presents information to end users.'}, {'type': 'Service.Browser', 'description': 'A web browser service enabling internet navigation.'}, {'type': 'Service.SSH', 'description': 'A service that enables secure remote access and command execution over the SSH protocol.'}, {'type': 'Service.DB', 'description': 'A database service for storing and managing structured data.'}, {'type': 'Service.Web', 'description': 'A web service hosting websites and applications.'}, {'type': 'Service.API', 'description': 'Interface that exposes functionalities of a service to other components or systems via defined protocols.'}, {'type': 'Service.NoSQLDB', 'description': 'A NoSQL database service for handling non-relational data.'}, {'type': 'Service.IDProvider', 'description': 'Provides authentication and identity management services, enabling user verification and access control.'}, {'type': 'Service.MQTTBroker', 'description': 'An MQTT broker service for IoT device communication.'}, {'type': 'Service.RPCBind', 'description': 'A service that maps RPC program numbers to network addresses, enabling RPC clients to locate available services on a host.'}, {'type': 'Service.JobScheduler', 'description': 'A job scheduling service for managing automated tasks.'}, {'type': 'Service.MQTTClient', 'description': 'An MQTT client service for IoT device communication.'}]"
+    },
+    {
+      "action": "tool='catalogs_get_relationship_types' tool_input={} log='\\nInvoking: `catalogs_get_relationship_types` with `{}`\\n\\n\\n' message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:49:31.497981395Z', 'done': True, 'done_reason': 'stop', 'total_duration': 1287433651, 'load_duration': 254727875, 'prompt_eval_count': 3851, 'prompt_eval_duration': 718149054, 'eval_count': 17, 'eval_duration': 160014033, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8b9f-6fbc-7220-aea5-dc5858728690', tool_calls=[{'name': 'catalogs_get_relationship_types', 'args': {}, 'id': '724ebd90-6405-4b59-be54-094a5d6ad856', 'type': 'tool_call'}], usage_metadata={'input_tokens': 3851, 'output_tokens': 17, 'total_tokens': 3868}, tool_call_chunks=[{'name': 'catalogs_get_relationship_types', 'args': '{}', 'id': '724ebd90-6405-4b59-be54-094a5d6ad856', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='724ebd90-6405-4b59-be54-094a5d6ad856'",
+      "observation": "['uses: Functional dependency between services/systems, requires alternate path without uses/interacts', 'hosts: Hosting/deployment relation, constrained by SystemLayer/Virtual/HW rules', 'provides: CSP provides services, resources, networks, or hardware', 'connects: Connectivity relation, can include protocol info', 'interacts: Interaction relation, usually between Party and other assets']"
+    },
+    {
+      "action": "tool='catalogs_get_relationship_patterns' tool_input={} log='\\nInvoking: `catalogs_get_relationship_patterns` with `{}`\\n\\n\\n' message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:49:32.547373909Z', 'done': True, 'done_reason': 'stop', 'total_duration': 754103482, 'load_duration': 247448464, 'prompt_eval_count': 3955, 'prompt_eval_duration': 106258015, 'eval_count': 17, 'eval_duration': 160291721, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8b9f-75ec-7142-ac4d-ad952cd2ad7f', tool_calls=[{'name': 'catalogs_get_relationship_patterns', 'args': {}, 'id': '2a2d1a7e-88de-487b-8d05-55ba53dc8137', 'type': 'tool_call'}], usage_metadata={'input_tokens': 3955, 'output_tokens': 17, 'total_tokens': 3972}, tool_call_chunks=[{'name': 'catalogs_get_relationship_patterns', 'args': '{}', 'id': '2a2d1a7e-88de-487b-8d05-55ba53dc8137', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='2a2d1a7e-88de-487b-8d05-55ba53dc8137'",
+      "observation": "[{'source': 'Party', 'type': 'interacts', 'target': ['Service']}, {'source': 'Party', 'type': 'interacts', 'target': ['HW']}, {'source': 'Party', 'type': 'interacts', 'target': ['Network']}, {'source': 'Party', 'type': 'interacts', 'target': ['Party']}, {'source': 'Party', 'type': 'interacts', 'target': ['Virtual']}, {'source': 'Party', 'type': 'interacts', 'target': ['SystemLayer']}, {'source': 'Party', 'type': 'interacts', 'target': ['CSP']}, {'source': 'Service', 'type': 'uses', 'target': ['Service']}, {'source': 'Service', 'type': 'uses', 'target': ['Virtual']}, {'source': 'Service', 'type': 'hosts', 'target': ['Service']}, {'source': 'Virtual', 'type': 'hosts', 'target': ['SystemLayer']}, {'source': 'SystemLayer', 'type': 'hosts', 'target': ['SystemLayer']}, {'source': 'SystemLayer', 'type': 'hosts', 'target': ['Virtual']}, {'source': 'SystemLayer', 'type': 'hosts', 'target': ['Service']}, {'source': 'SystemLayer', 'type': 'uses', 'target': ['HW']}, {'source': 'HW', 'type': 'hosts', 'target': ['HW']}, {'source': 'HW', 'type': 'hosts', 'target': ['SystemLayer']}, {'source': 'CSP', 'type': 'provides', 'target': ['Service']}, {'source': 'CSP', 'type': 'provides', 'target': ['Network']}, {'source': 'CSP', 'type': 'provides', 'target': ['HW']}, {'source': 'CSP', 'type': 'provides', 'target': ['Virtual']}, {'source': 'CSP', 'type': 'provides', 'target': ['SystemLayer']}, {'source': 'Network', 'type': 'connects', 'target': ['Network']}, {'source': 'Network', 'type': 'connects', 'target': ['Virtual']}, {'source': 'Network', 'type': 'connects', 'target': ['HW']}, {'source': 'Network', 'type': 'connects', 'target': ['CSP']}]"
+    },
+    {
+      "action": "tool='catalogs_get_protocols' tool_input={} log='\\nInvoking: `catalogs_get_protocols` with `{}`\\n\\n\\n' message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:49:33.832361687Z', 'done': True, 'done_reason': 'stop', 'total_duration': 1040848512, 'load_duration': 251231229, 'prompt_eval_count': 4509, 'prompt_eval_duration': 279625027, 'eval_count': 17, 'eval_duration': 167160836, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8b9f-79d4-74a2-b3dd-36ed774fcee1', tool_calls=[{'name': 'catalogs_get_protocols', 'args': {}, 'id': '96759bfa-c691-421a-a7f7-df861a60f375', 'type': 'tool_call'}], usage_metadata={'input_tokens': 4509, 'output_tokens': 17, 'total_tokens': 4526}, tool_call_chunks=[{'name': 'catalogs_get_protocols', 'args': '{}', 'id': '96759bfa-c691-421a-a7f7-df861a60f375', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='96759bfa-c691-421a-a7f7-df861a60f375'",
+      "observation": "[{'name': 'ARP', 'extended_name': 'Address Resolution Protocol', 'description': 'Resolves IP addresses to MAC addresses within a local network.', 'layer': 'Data Link', 'relationship': 'connects', 'ports': []}, {'name': 'Ethernet', 'extended_name': None, 'description': 'A family of networking technologies for local area networks.', 'layer': 'Data Link', 'relationship': 'connects', 'ports': []}, {'name': 'Zigbee', 'extended_name': None, 'description': 'A specification for a suite of high-level communication protocols using low-power digital radios for personal area networks.', 'layer': 'Data Link', 'relationship': 'connects', 'ports': []}, {'name': 'Wi-Fi (IEEE 802.11)', 'extended_name': None, 'description': 'Wireless networking technology for local area networks.', 'layer': 'Data Link', 'relationship': 'connects', 'ports': []}, {'name': 'BGP', 'extended_name': 'Border Gateway Protocol', 'description': 'A standardized exterior gateway protocol that manages how packets are routed across the internet through the exchange of routing and reachability information between autonomous systems.', 'layer': 'Network', 'relationship': 'connects', 'ports': []}, {'name': 'IPv4', 'extended_name': 'Internet Protocol version 4', 'description': 'Routes packets across network boundaries; the primary protocol for routing data across the internet. The fourth version of IP, using 32-bit addresses.', 'layer': 'Network', 'relationship': 'connects', 'ports': []}, {'name': 'IPv6', 'extended_name': 'Internet Protocol version 6', 'description': 'Routes packets across network boundaries; the primary protocol for routing data across the internet. The sixth version of IP, using 128-bit addresses to address the limitations of IPv4.', 'layer': 'Network', 'relationship': 'connects', 'ports': []}, {'name': 'IPSec', 'extended_name': 'Internet Protocol Security', 'description': 'Secures IP communications by authenticating and encrypting each IP packet.', 'layer': 'Network', 'relationship': 'connects', 'ports': []}, {'name': 'QUIC', 'extended_name': 'Quick UDP Internet Connections', 'description': 'Transport layer protocol developed by Google to improve performance.', 'layer': 'Transport', 'relationship': 'uses', 'ports': []}, {'name': 'SCTP', 'extended_name': 'Stream Control Transmission Protocol', 'description': 'Provides reliable, message-oriented communication.', 'layer': 'Transport', 'relationship': 'uses', 'ports': []}, {'name': 'UDP', 'extended_name': 'User Datagram Protocol', 'description': 'A connectionless protocol for sending datagrams without establishing a connection.', 'layer': 'Transport', 'relationship': 'uses', 'ports': []}, {'name': 'TCP', 'extended_name': 'Transmission Control Protocol', 'description': 'Ensures reliable, connection-oriented communication between devices.', 'layer': 'Transport', 'relationship': 'uses', 'ports': []}, {'name': 'DTLS', 'extended_name': 'Datagram Transport Layer Security', 'description': 'A communications protocol providing security to datagram-based applications.', 'layer': 'Presentation', 'relationship': 'uses', 'ports': []}, {'name': 'TLS', 'extended_name': 'Transport Layer Security', 'description': 'Provides privacy and data integrity between two communicating applications.', 'layer': 'Presentation', 'relationship': 'uses', 'ports': []}, {'name': 'SSL', 'extended_name': 'Secure Sockets Layer', 'description': 'Predecessor to TLS; provides secure communication over a computer network.', 'layer': 'Presentation', 'relationship': 'uses', 'ports': []}, {'name': 'HTTP', 'extended_name': 'Hypertext Transfer Protocol', 'description': 'Used for transferring web pages.', 'layer': 'Application', 'relationship': 'uses', 'ports': ['80', '443']}, {'name': 'Mavlink', 'extended_name': None, 'description': 'Lightweight messaging protocol for communication with drones.', 'layer': 'Application', 'relationship': 'uses', 'ports': []}, {'name': 'NFS', 'extended_name': 'Network File System', 'description': 'Allows a system to access files over a network as if they were on its local disks.', 'layer': 'Application', 'relationship': 'uses', 'ports': []}, {'name': 'SMB', 'extended_name': 'Server Message Block', 'description': 'Provides shared access to files, printers, and serial ports.', 'layer': 'Application', 'relationship': 'uses', 'ports': ['445']}, {'name': 'LDAP', 'extended_name': 'Lightweight Directory Access Protocol', 'description': 'Accesses and maintains distributed directory information services over an IP network.', 'layer': 'Application', 'relationship': 'uses', 'ports': ['389']}, {'name': 'DHCP', 'extended_name': 'Dynamic Host Configuration Protocol', 'description': 'Assigns IP addresses to devices on a network.', 'layer': 'Application', 'relationship': 'connects', 'ports': ['67', '68']}, {'name': 'FTP', 'extended_name': 'File Transfer Protocol', 'description': 'Used for transferring files between systems over a network.', 'layer': 'Application', 'relationship': 'uses', 'ports': ['20', '21']}, {'name': 'SSH', 'extended_name': 'Secure Shell', 'description': 'Provides secure remote login and command execution.', 'layer': 'Application', 'relationship': 'uses', 'ports': ['22']}, {'name': 'DNS', 'extended_name': 'Domain Name System', 'description': 'Is the system that translates human-readable domain names into IP addresses.', 'layer': 'Application', 'relationship': 'uses', 'ports': ['53']}, {'name': 'Telnet', 'extended_name': None, 'description': 'Used for remote command-line interface access to devices.', 'layer': 'Application', 'relationship': 'uses', 'ports': ['23']}, {'name': 'MQTT', 'extended_name': 'Message Queuing Telemetry Transport', 'description': 'Lightweight messaging protocol for small sensors and mobile devices.', 'layer': 'Application', 'relationship': 'uses', 'ports': ['1883', '8883']}]"
+    },
+    {
+      "action": "tool='catalogs_assign_labels' tool_input={'nodes': [{'component_id': '1', 'name': 'CloudProvider', 'type': 'CSP'}, {'component_id': '2', 'name': 'Internet', 'type': 'Network.WAN'}, {'component_id': '3', 'name': 'InternalLAN', 'type': 'Network.LAN'}, {'component_id': '4', 'name': 'WordPressVM', 'type': 'Virtual.VM'}, {'component_id': '5', 'name': 'MySQLVM', 'type': 'Virtual.VM'}, {'component_id': '6', 'name': 'LBVM', 'type': 'Virtual.VM'}, {'component_id': '7', 'name': 'WordPressOS', 'type': 'SystemLayer.OS'}, {'component_id': '8', 'name': 'MySQLOS', 'type': 'SystemLayer.OS'}, {'component_id': '9', 'name': 'LBOS', 'type': 'SystemLayer.OS'}, {'component_id': '10', 'name': 'WordPressApp', 'type': 'Service.Web'}, {'component_id': '11', 'name': 'MySQLDB', 'type': 'Service.DB'}, {'component_id': '12', 'name': 'LoadBalancerService', 'type': 'Service.Web'}]} log=\"\\nInvoking: `catalogs_assign_labels` with `{'nodes': [{'component_id': '1', 'name': 'CloudProvider', 'type': 'CSP'}, {'component_id': '2', 'name': 'Internet', 'type': 'Network.WAN'}, {'component_id': '3', 'name': 'InternalLAN', 'type': 'Network.LAN'}, {'component_id': '4', 'name': 'WordPressVM', 'type': 'Virtual.VM'}, {'component_id': '5', 'name': 'MySQLVM', 'type': 'Virtual.VM'}, {'component_id': '6', 'name': 'LBVM', 'type': 'Virtual.VM'}, {'component_id': '7', 'name': 'WordPressOS', 'type': 'SystemLayer.OS'}, {'component_id': '8', 'name': 'MySQLOS', 'type': 'SystemLayer.OS'}, {'component_id': '9', 'name': 'LBOS', 'type': 'SystemLayer.OS'}, {'component_id': '10', 'name': 'WordPressApp', 'type': 'Service.Web'}, {'component_id': '11', 'name': 'MySQLDB', 'type': 'Service.DB'}, {'component_id': '12', 'name': 'LoadBalancerService', 'type': 'Service.Web'}]}`\\n\\n\\n\" message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:50:06.705092428Z', 'done': True, 'done_reason': 'stop', 'total_duration': 32605154903, 'load_duration': 239233859, 'prompt_eval_count': 5892, 'prompt_eval_duration': 666443092, 'eval_count': 2929, 'eval_duration': 29900890467, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8b9f-7ee6-7cc0-bd31-1823ad9ac34b', tool_calls=[{'name': 'catalogs_assign_labels', 'args': {'nodes': [{'component_id': '1', 'name': 'CloudProvider', 'type': 'CSP'}, {'component_id': '2', 'name': 'Internet', 'type': 'Network.WAN'}, {'component_id': '3', 'name': 'InternalLAN', 'type': 'Network.LAN'}, {'component_id': '4', 'name': 'WordPressVM', 'type': 'Virtual.VM'}, {'component_id': '5', 'name': 'MySQLVM', 'type': 'Virtual.VM'}, {'component_id': '6', 'name': 'LBVM', 'type': 'Virtual.VM'}, {'component_id': '7', 'name': 'WordPressOS', 'type': 'SystemLayer.OS'}, {'component_id': '8', 'name': 'MySQLOS', 'type': 'SystemLayer.OS'}, {'component_id': '9', 'name': 'LBOS', 'type': 'SystemLayer.OS'}, {'component_id': '10', 'name': 'WordPressApp', 'type': 'Service.Web'}, {'component_id': '11', 'name': 'MySQLDB', 'type': 'Service.DB'}, {'component_id': '12', 'name': 'LoadBalancerService', 'type': 'Service.Web'}]}, 'id': '2f9fb05c-1651-4719-a8d0-ca2ed3d6159d', 'type': 'tool_call'}], usage_metadata={'input_tokens': 5892, 'output_tokens': 2929, 'total_tokens': 8821}, tool_call_chunks=[{'name': 'catalogs_assign_labels', 'args': '{\"nodes\": [{\"component_id\": \"1\", \"name\": \"CloudProvider\", \"type\": \"CSP\"}, {\"component_id\": \"2\", \"name\": \"Internet\", \"type\": \"Network.WAN\"}, {\"component_id\": \"3\", \"name\": \"InternalLAN\", \"type\": \"Network.LAN\"}, {\"component_id\": \"4\", \"name\": \"WordPressVM\", \"type\": \"Virtual.VM\"}, {\"component_id\": \"5\", \"name\": \"MySQLVM\", \"type\": \"Virtual.VM\"}, {\"component_id\": \"6\", \"name\": \"LBVM\", \"type\": \"Virtual.VM\"}, {\"component_id\": \"7\", \"name\": \"WordPressOS\", \"type\": \"SystemLayer.OS\"}, {\"component_id\": \"8\", \"name\": \"MySQLOS\", \"type\": \"SystemLayer.OS\"}, {\"component_id\": \"9\", \"name\": \"LBOS\", \"type\": \"SystemLayer.OS\"}, {\"component_id\": \"10\", \"name\": \"WordPressApp\", \"type\": \"Service.Web\"}, {\"component_id\": \"11\", \"name\": \"MySQLDB\", \"type\": \"Service.DB\"}, {\"component_id\": \"12\", \"name\": \"LoadBalancerService\", \"type\": \"Service.Web\"}]}', 'id': '2f9fb05c-1651-4719-a8d0-ca2ed3d6159d', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='2f9fb05c-1651-4719-a8d0-ca2ed3d6159d'",
+      "observation": "{'success': True, 'labeled_nodes': [{'component_id': 1, 'name': 'CloudProvider', 'type': 'CSP', 'primary_label': 'CSP', 'secondary_label': None, 'properties': None}, {'component_id': 2, 'name': 'Internet', 'type': 'Network.WAN', 'primary_label': 'Network', 'secondary_label': 'WAN', 'properties': None}, {'component_id': 3, 'name': 'InternalLAN', 'type': 'Network.LAN', 'primary_label': 'Network', 'secondary_label': 'LAN', 'properties': None}, {'component_id': 4, 'name': 'WordPressVM', 'type': 'Virtual.VM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'properties': None}, {'component_id': 5, 'name': 'MySQLVM', 'type': 'Virtual.VM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'properties': None}, {'component_id': 6, 'name': 'LBVM', 'type': 'Virtual.VM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'properties': None}, {'component_id': 7, 'name': 'WordPressOS', 'type': 'SystemLayer.OS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'properties': None}, {'component_id': 8, 'name': 'MySQLOS', 'type': 'SystemLayer.OS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'properties': None}, {'component_id': 9, 'name': 'LBOS', 'type': 'SystemLayer.OS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'properties': None}, {'component_id': 10, 'name': 'WordPressApp', 'type': 'Service.Web', 'primary_label': 'Service', 'secondary_label': 'Server', 'properties': None}, {'component_id': 11, 'name': 'MySQLDB', 'type': 'Service.DB', 'primary_label': 'Service', 'secondary_label': 'Server', 'properties': None}, {'component_id': 12, 'name': 'LoadBalancerService', 'type': 'Service.Web', 'primary_label': 'Service', 'secondary_label': 'Server', 'properties': None}], 'errors': []}"
+    },
+    {
+      "action": "tool='checkers_validate' tool_input={'architecture_model': {'nodes': [{'component_id': '1', 'name': 'CloudProvider', 'primary_label': 'CSP', 'secondary_label': None, 'type': 'CSP'}, {'component_id': '2', 'name': 'Internet', 'primary_label': 'Network', 'secondary_label': 'WAN', 'type': 'Network.WAN'}, {'component_id': '3', 'name': 'InternalLAN', 'primary_label': 'Network', 'secondary_label': 'LAN', 'type': 'Network.LAN'}, {'component_id': '4', 'name': 'WordPressVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '5', 'name': 'MySQLVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '6', 'name': 'LBVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '7', 'name': 'WordPressOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '8', 'name': 'MySQLOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '9', 'name': 'LBOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '10', 'name': 'WordPressApp', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.Web'}, {'component_id': '11', 'name': 'MySQLDB', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.DB'}, {'component_id': '12', 'name': 'LoadBalancerService', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.Web'}], 'relationships': [{'source': '1', 'target': '4', 'type': 'provides'}, {'source': '1', 'target': '5', 'type': 'provides'}, {'source': '1', 'target': '6', 'type': 'provides'}, {'source': '1', 'target': '2', 'type': 'provides'}, {'source': '1', 'target': '3', 'type': 'provides'}, {'source': '4', 'target': '7', 'type': 'hosts'}, {'source': '5', 'target': '8', 'type': 'hosts'}, {'source': '6', 'target': '9', 'type': 'hosts'}, {'source': '7', 'target': '10', 'type': 'hosts'}, {'source': '8', 'target': '11', 'type': 'hosts'}, {'source': '9', 'target': '12', 'type': 'hosts'}, {'source': '10', 'target': '11', 'type': 'uses'}, {'source': '12', 'target': '10', 'type': 'uses'}, {'source': '3', 'target': '4', 'type': 'connects'}, {'source': '3', 'target': '5', 'type': 'connects'}, {'source': '3', 'target': '6', 'type': 'connects'}]}} log=\"\\nInvoking: `checkers_validate` with `{'architecture_model': {'nodes': [{'component_id': '1', 'name': 'CloudProvider', 'primary_label': 'CSP', 'secondary_label': None, 'type': 'CSP'}, {'component_id': '2', 'name': 'Internet', 'primary_label': 'Network', 'secondary_label': 'WAN', 'type': 'Network.WAN'}, {'component_id': '3', 'name': 'InternalLAN', 'primary_label': 'Network', 'secondary_label': 'LAN', 'type': 'Network.LAN'}, {'component_id': '4', 'name': 'WordPressVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '5', 'name': 'MySQLVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '6', 'name': 'LBVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '7', 'name': 'WordPressOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '8', 'name': 'MySQLOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '9', 'name': 'LBOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '10', 'name': 'WordPressApp', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.Web'}, {'component_id': '11', 'name': 'MySQLDB', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.DB'}, {'component_id': '12', 'name': 'LoadBalancerService', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.Web'}], 'relationships': [{'source': '1', 'target': '4', 'type': 'provides'}, {'source': '1', 'target': '5', 'type': 'provides'}, {'source': '1', 'target': '6', 'type': 'provides'}, {'source': '1', 'target': '2', 'type': 'provides'}, {'source': '1', 'target': '3', 'type': 'provides'}, {'source': '4', 'target': '7', 'type': 'hosts'}, {'source': '5', 'target': '8', 'type': 'hosts'}, {'source': '6', 'target': '9', 'type': 'hosts'}, {'source': '7', 'target': '10', 'type': 'hosts'}, {'source': '8', 'target': '11', 'type': 'hosts'}, {'source': '9', 'target': '12', 'type': 'hosts'}, {'source': '10', 'target': '11', 'type': 'uses'}, {'source': '12', 'target': '10', 'type': 'uses'}, {'source': '3', 'target': '4', 'type': 'connects'}, {'source': '3', 'target': '5', 'type': 'connects'}, {'source': '3', 'target': '6', 'type': 'connects'}]}}`\\n\\n\\n\" message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:50:28.201649201Z', 'done': True, 'done_reason': 'stop', 'total_duration': 21202817691, 'load_duration': 242236159, 'prompt_eval_count': 6628, 'prompt_eval_duration': 2688593037, 'eval_count': 1648, 'eval_duration': 16839974383, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8b9f-ff66-7640-a455-3881cf93b04a', tool_calls=[{'name': 'checkers_validate', 'args': {'architecture_model': {'nodes': [{'component_id': '1', 'name': 'CloudProvider', 'primary_label': 'CSP', 'secondary_label': None, 'type': 'CSP'}, {'component_id': '2', 'name': 'Internet', 'primary_label': 'Network', 'secondary_label': 'WAN', 'type': 'Network.WAN'}, {'component_id': '3', 'name': 'InternalLAN', 'primary_label': 'Network', 'secondary_label': 'LAN', 'type': 'Network.LAN'}, {'component_id': '4', 'name': 'WordPressVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '5', 'name': 'MySQLVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '6', 'name': 'LBVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '7', 'name': 'WordPressOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '8', 'name': 'MySQLOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '9', 'name': 'LBOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '10', 'name': 'WordPressApp', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.Web'}, {'component_id': '11', 'name': 'MySQLDB', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.DB'}, {'component_id': '12', 'name': 'LoadBalancerService', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.Web'}], 'relationships': [{'source': '1', 'target': '4', 'type': 'provides'}, {'source': '1', 'target': '5', 'type': 'provides'}, {'source': '1', 'target': '6', 'type': 'provides'}, {'source': '1', 'target': '2', 'type': 'provides'}, {'source': '1', 'target': '3', 'type': 'provides'}, {'source': '4', 'target': '7', 'type': 'hosts'}, {'source': '5', 'target': '8', 'type': 'hosts'}, {'source': '6', 'target': '9', 'type': 'hosts'}, {'source': '7', 'target': '10', 'type': 'hosts'}, {'source': '8', 'target': '11', 'type': 'hosts'}, {'source': '9', 'target': '12', 'type': 'hosts'}, {'source': '10', 'target': '11', 'type': 'uses'}, {'source': '12', 'target': '10', 'type': 'uses'}, {'source': '3', 'target': '4', 'type': 'connects'}, {'source': '3', 'target': '5', 'type': 'connects'}, {'source': '3', 'target': '6', 'type': 'connects'}]}}, 'id': '973291b8-e1c5-4237-8cc9-82f2fdfdab0c', 'type': 'tool_call'}], usage_metadata={'input_tokens': 6628, 'output_tokens': 1648, 'total_tokens': 8276}, tool_call_chunks=[{'name': 'checkers_validate', 'args': '{\"architecture_model\": {\"nodes\": [{\"component_id\": \"1\", \"name\": \"CloudProvider\", \"primary_label\": \"CSP\", \"secondary_label\": null, \"type\": \"CSP\"}, {\"component_id\": \"2\", \"name\": \"Internet\", \"primary_label\": \"Network\", \"secondary_label\": \"WAN\", \"type\": \"Network.WAN\"}, {\"component_id\": \"3\", \"name\": \"InternalLAN\", \"primary_label\": \"Network\", \"secondary_label\": \"LAN\", \"type\": \"Network.LAN\"}, {\"component_id\": \"4\", \"name\": \"WordPressVM\", \"primary_label\": \"Virtual\", \"secondary_label\": \"VM\", \"type\": \"Virtual.VM\"}, {\"component_id\": \"5\", \"name\": \"MySQLVM\", \"primary_label\": \"Virtual\", \"secondary_label\": \"VM\", \"type\": \"Virtual.VM\"}, {\"component_id\": \"6\", \"name\": \"LBVM\", \"primary_label\": \"Virtual\", \"secondary_label\": \"VM\", \"type\": \"Virtual.VM\"}, {\"component_id\": \"7\", \"name\": \"WordPressOS\", \"primary_label\": \"SystemLayer\", \"secondary_label\": \"OS\", \"type\": \"SystemLayer.OS\"}, {\"component_id\": \"8\", \"name\": \"MySQLOS\", \"primary_label\": \"SystemLayer\", \"secondary_label\": \"OS\", \"type\": \"SystemLayer.OS\"}, {\"component_id\": \"9\", \"name\": \"LBOS\", \"primary_label\": \"SystemLayer\", \"secondary_label\": \"OS\", \"type\": \"SystemLayer.OS\"}, {\"component_id\": \"10\", \"name\": \"WordPressApp\", \"primary_label\": \"Service\", \"secondary_label\": \"Server\", \"type\": \"Service.Web\"}, {\"component_id\": \"11\", \"name\": \"MySQLDB\", \"primary_label\": \"Service\", \"secondary_label\": \"Server\", \"type\": \"Service.DB\"}, {\"component_id\": \"12\", \"name\": \"LoadBalancerService\", \"primary_label\": \"Service\", \"secondary_label\": \"Server\", \"type\": \"Service.Web\"}], \"relationships\": [{\"source\": \"1\", \"target\": \"4\", \"type\": \"provides\"}, {\"source\": \"1\", \"target\": \"5\", \"type\": \"provides\"}, {\"source\": \"1\", \"target\": \"6\", \"type\": \"provides\"}, {\"source\": \"1\", \"target\": \"2\", \"type\": \"provides\"}, {\"source\": \"1\", \"target\": \"3\", \"type\": \"provides\"}, {\"source\": \"4\", \"target\": \"7\", \"type\": \"hosts\"}, {\"source\": \"5\", \"target\": \"8\", \"type\": \"hosts\"}, {\"source\": \"6\", \"target\": \"9\", \"type\": \"hosts\"}, {\"source\": \"7\", \"target\": \"10\", \"type\": \"hosts\"}, {\"source\": \"8\", \"target\": \"11\", \"type\": \"hosts\"}, {\"source\": \"9\", \"target\": \"12\", \"type\": \"hosts\"}, {\"source\": \"10\", \"target\": \"11\", \"type\": \"uses\"}, {\"source\": \"12\", \"target\": \"10\", \"type\": \"uses\"}, {\"source\": \"3\", \"target\": \"4\", \"type\": \"connects\"}, {\"source\": \"3\", \"target\": \"5\", \"type\": \"connects\"}, {\"source\": \"3\", \"target\": \"6\", \"type\": \"connects\"}]}}', 'id': '973291b8-e1c5-4237-8cc9-82f2fdfdab0c', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='973291b8-e1c5-4237-8cc9-82f2fdfdab0c'",
+      "observation": "{'valid': True, 'errors': [], 'warnings': [], 'summary': {'nodes_tested': 12, 'relationships_tested': 16, 'validation_time': '2026-02-23T17:51:06.664097', 'status': 'Model successfully validated against MACM database'}}"
+    },
+    {
+      "action": "tool='cypher_convert_architecture' tool_input={'architecture_model': {'nodes': [{'component_id': '1', 'name': 'CloudProvider', 'primary_label': 'CSP', 'secondary_label': None, 'type': 'CSP'}, {'component_id': '2', 'name': 'Internet', 'primary_label': 'Network', 'secondary_label': 'WAN', 'type': 'Network.WAN'}, {'component_id': '3', 'name': 'InternalLAN', 'primary_label': 'Network', 'secondary_label': 'LAN', 'type': 'Network.LAN'}, {'component_id': '4', 'name': 'WordPressVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '5', 'name': 'MySQLVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '6', 'name': 'LBVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '7', 'name': 'WordPressOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '8', 'name': 'MySQLOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '9', 'name': 'LBOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '10', 'name': 'WordPressApp', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.Web'}, {'component_id': '11', 'name': 'MySQLDB', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.DB'}, {'component_id': '12', 'name': 'LoadBalancerService', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.Web'}], 'relationships': [{'source': '1', 'target': '4', 'type': 'provides'}, {'source': '1', 'target': '5', 'type': 'provides'}, {'source': '1', 'target': '6', 'type': 'provides'}, {'source': '1', 'target': '2', 'type': 'provides'}, {'source': '1', 'target': '3', 'type': 'provides'}, {'source': '4', 'target': '7', 'type': 'hosts'}, {'source': '5', 'target': '8', 'type': 'hosts'}, {'source': '6', 'target': '9', 'type': 'hosts'}, {'source': '7', 'target': '10', 'type': 'hosts'}, {'source': '8', 'target': '11', 'type': 'hosts'}, {'source': '9', 'target': '12', 'type': 'hosts'}, {'source': '10', 'target': '11', 'type': 'uses'}, {'source': '12', 'target': '10', 'type': 'uses'}, {'source': '3', 'target': '4', 'type': 'connects'}, {'source': '3', 'target': '5', 'type': 'connects'}, {'source': '3', 'target': '6', 'type': 'connects'}]}, 'format_style': 'multiline'} log=\"\\nInvoking: `cypher_convert_architecture` with `{'architecture_model': {'nodes': [{'component_id': '1', 'name': 'CloudProvider', 'primary_label': 'CSP', 'secondary_label': None, 'type': 'CSP'}, {'component_id': '2', 'name': 'Internet', 'primary_label': 'Network', 'secondary_label': 'WAN', 'type': 'Network.WAN'}, {'component_id': '3', 'name': 'InternalLAN', 'primary_label': 'Network', 'secondary_label': 'LAN', 'type': 'Network.LAN'}, {'component_id': '4', 'name': 'WordPressVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '5', 'name': 'MySQLVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '6', 'name': 'LBVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '7', 'name': 'WordPressOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '8', 'name': 'MySQLOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '9', 'name': 'LBOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '10', 'name': 'WordPressApp', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.Web'}, {'component_id': '11', 'name': 'MySQLDB', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.DB'}, {'component_id': '12', 'name': 'LoadBalancerService', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.Web'}], 'relationships': [{'source': '1', 'target': '4', 'type': 'provides'}, {'source': '1', 'target': '5', 'type': 'provides'}, {'source': '1', 'target': '6', 'type': 'provides'}, {'source': '1', 'target': '2', 'type': 'provides'}, {'source': '1', 'target': '3', 'type': 'provides'}, {'source': '4', 'target': '7', 'type': 'hosts'}, {'source': '5', 'target': '8', 'type': 'hosts'}, {'source': '6', 'target': '9', 'type': 'hosts'}, {'source': '7', 'target': '10', 'type': 'hosts'}, {'source': '8', 'target': '11', 'type': 'hosts'}, {'source': '9', 'target': '12', 'type': 'hosts'}, {'source': '10', 'target': '11', 'type': 'uses'}, {'source': '12', 'target': '10', 'type': 'uses'}, {'source': '3', 'target': '4', 'type': 'connects'}, {'source': '3', 'target': '5', 'type': 'connects'}, {'source': '3', 'target': '6', 'type': 'connects'}]}, 'format_style': 'multiline'}`\\n\\n\\n\" message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:50:41.231773932Z', 'done': True, 'done_reason': 'stop', 'total_duration': 12088853039, 'load_duration': 290755662, 'prompt_eval_count': 7248, 'prompt_eval_duration': 3045294195, 'eval_count': 733, 'eval_duration': 7484556629, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8ba0-55e2-7431-8973-1673b1dc2cda', tool_calls=[{'name': 'cypher_convert_architecture', 'args': {'architecture_model': {'nodes': [{'component_id': '1', 'name': 'CloudProvider', 'primary_label': 'CSP', 'secondary_label': None, 'type': 'CSP'}, {'component_id': '2', 'name': 'Internet', 'primary_label': 'Network', 'secondary_label': 'WAN', 'type': 'Network.WAN'}, {'component_id': '3', 'name': 'InternalLAN', 'primary_label': 'Network', 'secondary_label': 'LAN', 'type': 'Network.LAN'}, {'component_id': '4', 'name': 'WordPressVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '5', 'name': 'MySQLVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '6', 'name': 'LBVM', 'primary_label': 'Virtual', 'secondary_label': 'VM', 'type': 'Virtual.VM'}, {'component_id': '7', 'name': 'WordPressOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '8', 'name': 'MySQLOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '9', 'name': 'LBOS', 'primary_label': 'SystemLayer', 'secondary_label': 'OS', 'type': 'SystemLayer.OS'}, {'component_id': '10', 'name': 'WordPressApp', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.Web'}, {'component_id': '11', 'name': 'MySQLDB', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.DB'}, {'component_id': '12', 'name': 'LoadBalancerService', 'primary_label': 'Service', 'secondary_label': 'Server', 'type': 'Service.Web'}], 'relationships': [{'source': '1', 'target': '4', 'type': 'provides'}, {'source': '1', 'target': '5', 'type': 'provides'}, {'source': '1', 'target': '6', 'type': 'provides'}, {'source': '1', 'target': '2', 'type': 'provides'}, {'source': '1', 'target': '3', 'type': 'provides'}, {'source': '4', 'target': '7', 'type': 'hosts'}, {'source': '5', 'target': '8', 'type': 'hosts'}, {'source': '6', 'target': '9', 'type': 'hosts'}, {'source': '7', 'target': '10', 'type': 'hosts'}, {'source': '8', 'target': '11', 'type': 'hosts'}, {'source': '9', 'target': '12', 'type': 'hosts'}, {'source': '10', 'target': '11', 'type': 'uses'}, {'source': '12', 'target': '10', 'type': 'uses'}, {'source': '3', 'target': '4', 'type': 'connects'}, {'source': '3', 'target': '5', 'type': 'connects'}, {'source': '3', 'target': '6', 'type': 'connects'}]}, 'format_style': 'multiline'}, 'id': '7e78c644-cff0-42ca-891d-fa963a422b98', 'type': 'tool_call'}], usage_metadata={'input_tokens': 7248, 'output_tokens': 733, 'total_tokens': 7981}, tool_call_chunks=[{'name': 'cypher_convert_architecture', 'args': '{\"architecture_model\": {\"nodes\": [{\"component_id\": \"1\", \"name\": \"CloudProvider\", \"primary_label\": \"CSP\", \"secondary_label\": null, \"type\": \"CSP\"}, {\"component_id\": \"2\", \"name\": \"Internet\", \"primary_label\": \"Network\", \"secondary_label\": \"WAN\", \"type\": \"Network.WAN\"}, {\"component_id\": \"3\", \"name\": \"InternalLAN\", \"primary_label\": \"Network\", \"secondary_label\": \"LAN\", \"type\": \"Network.LAN\"}, {\"component_id\": \"4\", \"name\": \"WordPressVM\", \"primary_label\": \"Virtual\", \"secondary_label\": \"VM\", \"type\": \"Virtual.VM\"}, {\"component_id\": \"5\", \"name\": \"MySQLVM\", \"primary_label\": \"Virtual\", \"secondary_label\": \"VM\", \"type\": \"Virtual.VM\"}, {\"component_id\": \"6\", \"name\": \"LBVM\", \"primary_label\": \"Virtual\", \"secondary_label\": \"VM\", \"type\": \"Virtual.VM\"}, {\"component_id\": \"7\", \"name\": \"WordPressOS\", \"primary_label\": \"SystemLayer\", \"secondary_label\": \"OS\", \"type\": \"SystemLayer.OS\"}, {\"component_id\": \"8\", \"name\": \"MySQLOS\", \"primary_label\": \"SystemLayer\", \"secondary_label\": \"OS\", \"type\": \"SystemLayer.OS\"}, {\"component_id\": \"9\", \"name\": \"LBOS\", \"primary_label\": \"SystemLayer\", \"secondary_label\": \"OS\", \"type\": \"SystemLayer.OS\"}, {\"component_id\": \"10\", \"name\": \"WordPressApp\", \"primary_label\": \"Service\", \"secondary_label\": \"Server\", \"type\": \"Service.Web\"}, {\"component_id\": \"11\", \"name\": \"MySQLDB\", \"primary_label\": \"Service\", \"secondary_label\": \"Server\", \"type\": \"Service.DB\"}, {\"component_id\": \"12\", \"name\": \"LoadBalancerService\", \"primary_label\": \"Service\", \"secondary_label\": \"Server\", \"type\": \"Service.Web\"}], \"relationships\": [{\"source\": \"1\", \"target\": \"4\", \"type\": \"provides\"}, {\"source\": \"1\", \"target\": \"5\", \"type\": \"provides\"}, {\"source\": \"1\", \"target\": \"6\", \"type\": \"provides\"}, {\"source\": \"1\", \"target\": \"2\", \"type\": \"provides\"}, {\"source\": \"1\", \"target\": \"3\", \"type\": \"provides\"}, {\"source\": \"4\", \"target\": \"7\", \"type\": \"hosts\"}, {\"source\": \"5\", \"target\": \"8\", \"type\": \"hosts\"}, {\"source\": \"6\", \"target\": \"9\", \"type\": \"hosts\"}, {\"source\": \"7\", \"target\": \"10\", \"type\": \"hosts\"}, {\"source\": \"8\", \"target\": \"11\", \"type\": \"hosts\"}, {\"source\": \"9\", \"target\": \"12\", \"type\": \"hosts\"}, {\"source\": \"10\", \"target\": \"11\", \"type\": \"uses\"}, {\"source\": \"12\", \"target\": \"10\", \"type\": \"uses\"}, {\"source\": \"3\", \"target\": \"4\", \"type\": \"connects\"}, {\"source\": \"3\", \"target\": \"5\", \"type\": \"connects\"}, {\"source\": \"3\", \"target\": \"6\", \"type\": \"connects\"}]}, \"format_style\": \"multiline\"}', 'id': '7e78c644-cff0-42ca-891d-fa963a422b98', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='7e78c644-cff0-42ca-891d-fa963a422b98'",
+      "observation": "{'success': True, 'cypher': \"CREATE (CloudProvider:CSP {component_id: '1', name: 'CloudProvider', type: 'CSP', primary_label: 'CSP'}),\\n       (Internet:Network:WAN {component_id: '2', name: 'Internet', type: 'Network.WAN', primary_label: 'Network', secondary_label: 'WAN'}),\\n       (InternalLAN:Network:LAN {component_id: '3', name: 'InternalLAN', type: 'Network.LAN', primary_label: 'Network', secondary_label: 'LAN'}),\\n       (WordPressVM:Virtual:VM {component_id: '4', name: 'WordPressVM', type: 'Virtual.VM', primary_label: 'Virtual', secondary_label: 'VM'}),\\n       (MySQLVM:Virtual:VM {component_id: '5', name: 'MySQLVM', type: 'Virtual.VM', primary_label: 'Virtual', secondary_label: 'VM'}),\\n       (LBVM:Virtual:VM {component_id: '6', name: 'LBVM', type: 'Virtual.VM', primary_label: 'Virtual', secondary_label: 'VM'}),\\n       (WordPressOS:SystemLayer:OS {component_id: '7', name: 'WordPressOS', type: 'SystemLayer.OS', primary_label: 'SystemLayer', secondary_label: 'OS'}),\\n       (MySQLOS:SystemLayer:OS {component_id: '8', name: 'MySQLOS', type: 'SystemLayer.OS', primary_label: 'SystemLayer', secondary_label: 'OS'}),\\n       (LBOS:SystemLayer:OS {component_id: '9', name: 'LBOS', type: 'SystemLayer.OS', primary_label: 'SystemLayer', secondary_label: 'OS'}),\\n       (WordPressApp:Service:Server {component_id: '10', name: 'WordPressApp', type: 'Service.Web', primary_label: 'Service', secondary_label: 'Server'}),\\n       (MySQLDB:Service:Server {component_id: '11', name: 'MySQLDB', type: 'Service.DB', primary_label: 'Service', secondary_label: 'Server'}),\\n       (LoadBalancerService:Service:Server {component_id: '12', name: 'LoadBalancerService', type: 'Service.Web', primary_label: 'Service', secondary_label: 'Server'}),\\n       (CloudProvider)-[:provides {}]->(WordPressVM),\\n       (CloudProvider)-[:provides {}]->(MySQLVM),\\n       (CloudProvider)-[:provides {}]->(LBVM),\\n       (CloudProvider)-[:provides {}]->(Internet),\\n       (CloudProvider)-[:provides {}]->(InternalLAN),\\n       (WordPressVM)-[:hosts {}]->(WordPressOS),\\n       (MySQLVM)-[:hosts {}]->(MySQLOS),\\n       (LBVM)-[:hosts {}]->(LBOS),\\n       (WordPressOS)-[:hosts {}]->(WordPressApp),\\n       (MySQLOS)-[:hosts {}]->(MySQLDB),\\n       (LBOS)-[:hosts {}]->(LoadBalancerService),\\n       (WordPressApp)-[:uses {}]->(MySQLDB),\\n       (LoadBalancerService)-[:uses {}]->(WordPressApp),\\n       (InternalLAN)-[:connects {}]->(WordPressVM),\\n       (InternalLAN)-[:connects {}]->(MySQLVM),\\n       (InternalLAN)-[:connects {}]->(LBVM)\", 'format': 'multiline', 'summary': {'nodes_count': 12, 'relationships_count': 16, 'node_types': 7, 'relationship_types': 4, 'unique_node_names': 12, 'protocols_used': 0}}"
+    }
+  ],
+  "tool_tracking": {
+    "total_calls": 8,
+    "calls_by_tool": {
+      "checkers_get_database_constraints": 1,
+      "catalogs_get_asset_types": 1,
+      "catalogs_get_relationship_types": 1,
+      "catalogs_get_relationship_patterns": 1,
+      "catalogs_get_protocols": 1,
+      "catalogs_assign_labels": 1,
+      "checkers_validate": 1,
+      "cypher_convert_architecture": 1
+    },
+    "call_history": [
+      {
+        "tool": "checkers_get_database_constraints",
+        "timestamp": "2026-02-23T18:49:54.483011",
+        "args": {},
+        "result": {
+          "title": "MACM database constraints",
+          "summary": [
+            {
+              "name": "Required node properties",
+              "short": "All nodes must have component_id (numeric string >0), primary_label (string), and type (string). Validate properties before insertion."
+            },
+            {
+              "name": "Asset type validity",
+              "short": "Primary label must match node type prefix; secondary labels must follow predefined mappings (e.g., HW.Server needs [HW, Server] labels)."
+            },
+            {
+              "name": "Single hosting per asset",
+              "short": "Each asset can have at most one incoming hosts/provides relationship. Remove duplicate hosts if multiple exist."
+            },
+            {
+              "name": "Mandatory host for Service",
+              "short": "Each Service must have exactly one incoming hosts/provides relationship (from SystemLayer/Virtual/Service or CSP)."
+            },
+            {
+              "name": "Alternate path for uses",
+              "short": "For every (A)-[:uses]->(B) there must exist an alternate path via hosts/provides/connects (not uses). Ensure infrastructure connectivity."
+            },
+            {
+              "name": "SystemLayer -> SystemLayer hosting",
+              "short": "Only SystemLayer.OS may host SystemLayer.ContainerRuntime or SystemLayer.HyperVisor. Virtualization layers require an OS."
+            },
+            {
+              "name": "SystemLayer -> Virtual hosting",
+              "short": "ContainerRuntime hosts Virtual.Container; HyperVisor hosts Virtual.VM. Match virtualization technology types."
+            },
+            {
+              "name": "SystemLayer -> Service hosting",
+              "short": "Only SystemLayer.Firmware and SystemLayer.OS may directly host Services. Use Virtual nodes for containerized services."
+            },
+            {
+              "name": "Virtual -> SystemLayer hosting",
+              "short": "Virtual nodes may only host base SystemLayer (OS or Firmware). VMs typically host an OS which then hosts services."
+            },
+            {
+              "name": "HW -> SystemLayer restrictions",
+              "short": "Hardware cannot directly host SystemLayer.ContainerRuntime; an OS must mediate (HW->OS->ContainerRuntime layering)."
+            },
+            {
+              "name": "Graph connectivity",
+              "short": "Model must be connected: all nodes reachable in undirected graph. Link isolated components with appropriate relationships."
+            },
+            {
+              "name": "Mandatory host for SystemLayer",
+              "short": "Each SystemLayer must have exactly one incoming hosts/provides. OS hosted by HW/Virtual; ContainerRuntime/HyperVisor by OS."
+            },
+            {
+              "name": "Mandatory host for Virtual",
+              "short": "Each Virtual node must have at least one incoming hosts/provides (from ContainerRuntime/HyperVisor or CSP). Virtual resources require infrastructure."
+            },
+            {
+              "name": "Hosts acyclicity",
+              "short": "The hosts hierarchy must be acyclic (no circular containment). Use [:uses] for dependencies, [:hosts] for containment only."
+            },
+            {
+              "name": "Relationship pattern validity",
+              "short": "Only allowed patterns between primary labels are permitted: Party-interacts-*, Service-uses-Service/Virtual, SystemLayer-hosts-*, HW-hosts-HW/SystemLayer, CSP-provides-*, Network-connects-*."
+            }
+          ]
+        }
+      },
+      {
+        "tool": "catalogs_get_asset_types",
+        "timestamp": "2026-02-23T18:50:07.802118",
+        "args": {},
+        "result": [
+          {
+            "type": "Party.Human",
+            "description": "A user or external actor interacting with the system."
+          },
+          {
+            "type": "Party.LegalEntity",
+            "description": "A legally recognized individual or organization with rights and obligations."
+          },
+          {
+            "type": "Party.Group",
+            "description": "A collection of related entities or individuals acting as a unified organizational unit."
+          },
+          {
+            "type": "CSP",
+            "description": "A service provider offering communication network connectivity."
+          },
+          {
+            "type": "HW.MEC",
+            "description": "A Multi-Access Edge Computing device that processes data near the user."
+          },
+          {
+            "type": "HW.Chassis",
+            "description": "A physical enclosure housing hardware components like servers or network devices."
+          },
+          {
+            "type": "HW.GCS",
+            "description": "A ground control station for managing remote devices or drones."
+          },
+          {
+            "type": "HW.HDI",
+            "description": "Interface for human interaction with a device through input and output mechanisms."
+          },
+          {
+            "type": "HW.IoT.Device",
+            "description": "An Internet of Things device with connectivity and automation capabilities."
+          },
+          {
+            "type": "HW.IoT.Gateway",
+            "description": "Device that connects IoT devices to external networks, handling protocol translation, aggregation, and preliminary data processing."
+          },
+          {
+            "type": "HW.Router",
+            "description": "A physical network device that forwards data packets between different networks, directing traffic based on IP addresses."
+          },
+          {
+            "type": "HW.Device",
+            "description": "A general-purpose hardware device used in various technological contexts."
+          },
+          {
+            "type": "HW.Server",
+            "description": "A hardware system providing computing and storage services."
+          },
+          {
+            "type": "HW.UE",
+            "description": "A user equipment device, such as a smartphone."
+          },
+          {
+            "type": "HW.Microcontroller",
+            "description": "A small integrated circuit used to control embedded systems."
+          },
+          {
+            "type": "HW.SOC",
+            "description": "A System-on-Chip integrating multiple hardware components into a single circuit."
+          },
+          {
+            "type": "HW.Raspberry",
+            "description": "A low-cost microcomputer used for development and automation."
+          },
+          {
+            "type": "HW.PC",
+            "description": "A personal computer used for local or network-based tasks."
+          },
+          {
+            "type": "HW.PC.LoginNode",
+            "description": "A server node handling user login management in a computing cluster."
+          },
+          {
+            "type": "HW.PC.DataStorageDisk",
+            "description": "A data storage disk used in servers or networked systems."
+          },
+          {
+            "type": "HW.PC.SchedulerNode",
+            "description": "A scheduler node managing workload distribution in a cluster."
+          },
+          {
+            "type": "HW.PC.ComputeNode",
+            "description": "A compute node used for processing in a cluster environment."
+          },
+          {
+            "type": "Network",
+            "description": "A generic Network."
+          },
+          {
+            "type": "Network.WAN",
+            "description": "A wide-area network connecting multiple locations or regions."
+          },
+          {
+            "type": "Network.LAN",
+            "description": "A local area network that enables communication between devices within a limited geographic area, such as a home or data center."
+          },
+          {
+            "type": "Network.Wired",
+            "description": "A wired local area network using physical connections."
+          },
+          {
+            "type": "Network.WiFi",
+            "description": "A wireless local area network (WiFi) for device connectivity."
+          },
+          {
+            "type": "Network.Virtual",
+            "description": "A virtual network created by the container runtime to enable isolated communication between containers and with the host system."
+          },
+          {
+            "type": "Network.PAN",
+            "description": "A personal area network for short-range communication, such as wearables."
+          },
+          {
+            "type": "Network.RAN",
+            "description": "Radio network infrastructure enabling wireless communication between user devices and core networks."
+          },
+          {
+            "type": "Network.Core",
+            "description": "The core infrastructure of a 5G network for managing data traffic."
+          },
+          {
+            "type": "SystemLayer.OS",
+            "description": "An operating system managing hardware and software resources."
+          },
+          {
+            "type": "SystemLayer.Firmware",
+            "description": "A firmware service that controls low-level hardware functions."
+          },
+          {
+            "type": "SystemLayer.HyperVisor",
+            "description": "Software or firmware layer that creates and manages virtual machines by abstracting and allocating physical hardware resources."
+          },
+          {
+            "type": "SystemLayer.ContainerRuntime",
+            "description": "Software component that manages the lifecycle and execution of containers on a host system."
+          },
+          {
+            "type": "Virtual.VM",
+            "description": "A virtual machine service used in different infrastructure."
+          },
+          {
+            "type": "Virtual.Container",
+            "description": "Application service running in an isolated, portable, and scalable container environment."
+          },
+          {
+            "type": "Service",
+            "description": "A generic Service."
+          },
+          {
+            "type": "Service.5G.RAN",
+            "description": "Logical service managing radio access functionalities and control over the RAN infrastructure."
+          },
+          {
+            "type": "Service.5G.AMF",
+            "description": "A 5G service managing user registration and mobility (AMF)."
+          },
+          {
+            "type": "Service.5G.AUSF",
+            "description": "A 5G service handling authentication and security (AUSF)."
+          },
+          {
+            "type": "Service.5G.NEF",
+            "description": "A 5G service exposing network functions to applications (NEF)."
+          },
+          {
+            "type": "Service.5G.NRF",
+            "description": "A 5G service acting as the network function repository (NRF)."
+          },
+          {
+            "type": "Service.5G.NSSF",
+            "description": "A 5G service managing network slicing (NSSF)."
+          },
+          {
+            "type": "Service.5G.NWDAF",
+            "description": "A 5G service providing network analytics (NWDAF)."
+          },
+          {
+            "type": "Service.5G.PCF",
+            "description": "A 5G policy control service (PCF)."
+          },
+          {
+            "type": "Service.5G.UDM",
+            "description": "A 5G service handling user data management (UDM)."
+          },
+          {
+            "type": "Service.5G.UPF",
+            "description": "A 5G service managing packet forwarding (UPF)."
+          },
+          {
+            "type": "Service.App",
+            "description": "A general-purpose application service that consumes data, interfaces with other services, or presents information to end users."
+          },
+          {
+            "type": "Service.Browser",
+            "description": "A web browser service enabling internet navigation."
+          },
+          {
+            "type": "Service.SSH",
+            "description": "A service that enables secure remote access and command execution over the SSH protocol."
+          },
+          {
+            "type": "Service.DB",
+            "description": "A database service for storing and managing structured data."
+          },
+          {
+            "type": "Service.Web",
+            "description": "A web service hosting websites and applications."
+          },
+          {
+            "type": "Service.API",
+            "description": "Interface that exposes functionalities of a service to other components or systems via defined protocols."
+          },
+          {
+            "type": "Service.NoSQLDB",
+            "description": "A NoSQL database service for handling non-relational data."
+          },
+          {
+            "type": "Service.IDProvider",
+            "description": "Provides authentication and identity management services, enabling user verification and access control."
+          },
+          {
+            "type": "Service.MQTTBroker",
+            "description": "An MQTT broker service for IoT device communication."
+          },
+          {
+            "type": "Service.RPCBind",
+            "description": "A service that maps RPC program numbers to network addresses, enabling RPC clients to locate available services on a host."
+          },
+          {
+            "type": "Service.JobScheduler",
+            "description": "A job scheduling service for managing automated tasks."
+          },
+          {
+            "type": "Service.MQTTClient",
+            "description": "An MQTT client service for IoT device communication."
+          }
+        ]
+      },
+      {
+        "tool": "catalogs_get_relationship_types",
+        "timestamp": "2026-02-23T18:50:09.379759",
+        "args": {},
+        "result": [
+          "uses: Functional dependency between services/systems, requires alternate path without uses/interacts",
+          "hosts: Hosting/deployment relation, constrained by SystemLayer/Virtual/HW rules",
+          "provides: CSP provides services, resources, networks, or hardware",
+          "connects: Connectivity relation, can include protocol info",
+          "interacts: Interaction relation, usually between Party and other assets"
+        ]
+      },
+      {
+        "tool": "catalogs_get_relationship_patterns",
+        "timestamp": "2026-02-23T18:50:10.381425",
+        "args": {},
+        "result": [
+          {
+            "source": "Party",
+            "type": "interacts",
+            "target": [
+              "Service"
+            ]
+          },
+          {
+            "source": "Party",
+            "type": "interacts",
+            "target": [
+              "HW"
+            ]
+          },
+          {
+            "source": "Party",
+            "type": "interacts",
+            "target": [
+              "Network"
+            ]
+          },
+          {
+            "source": "Party",
+            "type": "interacts",
+            "target": [
+              "Party"
+            ]
+          },
+          {
+            "source": "Party",
+            "type": "interacts",
+            "target": [
+              "Virtual"
+            ]
+          },
+          {
+            "source": "Party",
+            "type": "interacts",
+            "target": [
+              "SystemLayer"
+            ]
+          },
+          {
+            "source": "Party",
+            "type": "interacts",
+            "target": [
+              "CSP"
+            ]
+          },
+          {
+            "source": "Service",
+            "type": "uses",
+            "target": [
+              "Service"
+            ]
+          },
+          {
+            "source": "Service",
+            "type": "uses",
+            "target": [
+              "Virtual"
+            ]
+          },
+          {
+            "source": "Service",
+            "type": "hosts",
+            "target": [
+              "Service"
+            ]
+          },
+          {
+            "source": "Virtual",
+            "type": "hosts",
+            "target": [
+              "SystemLayer"
+            ]
+          },
+          {
+            "source": "SystemLayer",
+            "type": "hosts",
+            "target": [
+              "SystemLayer"
+            ]
+          },
+          {
+            "source": "SystemLayer",
+            "type": "hosts",
+            "target": [
+              "Virtual"
+            ]
+          },
+          {
+            "source": "SystemLayer",
+            "type": "hosts",
+            "target": [
+              "Service"
+            ]
+          },
+          {
+            "source": "SystemLayer",
+            "type": "uses",
+            "target": [
+              "HW"
+            ]
+          },
+          {
+            "source": "HW",
+            "type": "hosts",
+            "target": [
+              "HW"
+            ]
+          },
+          {
+            "source": "HW",
+            "type": "hosts",
+            "target": [
+              "SystemLayer"
+            ]
+          },
+          {
+            "source": "CSP",
+            "type": "provides",
+            "target": [
+              "Service"
+            ]
+          },
+          {
+            "source": "CSP",
+            "type": "provides",
+            "target": [
+              "Network"
+            ]
+          },
+          {
+            "source": "CSP",
+            "type": "provides",
+            "target": [
+              "HW"
+            ]
+          },
+          {
+            "source": "CSP",
+            "type": "provides",
+            "target": [
+              "Virtual"
+            ]
+          },
+          {
+            "source": "CSP",
+            "type": "provides",
+            "target": [
+              "SystemLayer"
+            ]
+          },
+          {
+            "source": "Network",
+            "type": "connects",
+            "target": [
+              "Network"
+            ]
+          },
+          {
+            "source": "Network",
+            "type": "connects",
+            "target": [
+              "Virtual"
+            ]
+          },
+          {
+            "source": "Network",
+            "type": "connects",
+            "target": [
+              "HW"
+            ]
+          },
+          {
+            "source": "Network",
+            "type": "connects",
+            "target": [
+              "CSP"
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "catalogs_get_protocols",
+        "timestamp": "2026-02-23T18:50:11.684294",
+        "args": {},
+        "result": [
+          {
+            "name": "ARP",
+            "extended_name": "Address Resolution Protocol",
+            "description": "Resolves IP addresses to MAC addresses within a local network.",
+            "layer": "Data Link",
+            "relationship": "connects",
+            "ports": []
+          },
+          {
+            "name": "Ethernet",
+            "extended_name": null,
+            "description": "A family of networking technologies for local area networks.",
+            "layer": "Data Link",
+            "relationship": "connects",
+            "ports": []
+          },
+          {
+            "name": "Zigbee",
+            "extended_name": null,
+            "description": "A specification for a suite of high-level communication protocols using low-power digital radios for personal area networks.",
+            "layer": "Data Link",
+            "relationship": "connects",
+            "ports": []
+          },
+          {
+            "name": "Wi-Fi (IEEE 802.11)",
+            "extended_name": null,
+            "description": "Wireless networking technology for local area networks.",
+            "layer": "Data Link",
+            "relationship": "connects",
+            "ports": []
+          },
+          {
+            "name": "BGP",
+            "extended_name": "Border Gateway Protocol",
+            "description": "A standardized exterior gateway protocol that manages how packets are routed across the internet through the exchange of routing and reachability information between autonomous systems.",
+            "layer": "Network",
+            "relationship": "connects",
+            "ports": []
+          },
+          {
+            "name": "IPv4",
+            "extended_name": "Internet Protocol version 4",
+            "description": "Routes packets across network boundaries; the primary protocol for routing data across the internet. The fourth version of IP, using 32-bit addresses.",
+            "layer": "Network",
+            "relationship": "connects",
+            "ports": []
+          },
+          {
+            "name": "IPv6",
+            "extended_name": "Internet Protocol version 6",
+            "description": "Routes packets across network boundaries; the primary protocol for routing data across the internet. The sixth version of IP, using 128-bit addresses to address the limitations of IPv4.",
+            "layer": "Network",
+            "relationship": "connects",
+            "ports": []
+          },
+          {
+            "name": "IPSec",
+            "extended_name": "Internet Protocol Security",
+            "description": "Secures IP communications by authenticating and encrypting each IP packet.",
+            "layer": "Network",
+            "relationship": "connects",
+            "ports": []
+          },
+          {
+            "name": "QUIC",
+            "extended_name": "Quick UDP Internet Connections",
+            "description": "Transport layer protocol developed by Google to improve performance.",
+            "layer": "Transport",
+            "relationship": "uses",
+            "ports": []
+          },
+          {
+            "name": "SCTP",
+            "extended_name": "Stream Control Transmission Protocol",
+            "description": "Provides reliable, message-oriented communication.",
+            "layer": "Transport",
+            "relationship": "uses",
+            "ports": []
+          },
+          {
+            "name": "UDP",
+            "extended_name": "User Datagram Protocol",
+            "description": "A connectionless protocol for sending datagrams without establishing a connection.",
+            "layer": "Transport",
+            "relationship": "uses",
+            "ports": []
+          },
+          {
+            "name": "TCP",
+            "extended_name": "Transmission Control Protocol",
+            "description": "Ensures reliable, connection-oriented communication between devices.",
+            "layer": "Transport",
+            "relationship": "uses",
+            "ports": []
+          },
+          {
+            "name": "DTLS",
+            "extended_name": "Datagram Transport Layer Security",
+            "description": "A communications protocol providing security to datagram-based applications.",
+            "layer": "Presentation",
+            "relationship": "uses",
+            "ports": []
+          },
+          {
+            "name": "TLS",
+            "extended_name": "Transport Layer Security",
+            "description": "Provides privacy and data integrity between two communicating applications.",
+            "layer": "Presentation",
+            "relationship": "uses",
+            "ports": []
+          },
+          {
+            "name": "SSL",
+            "extended_name": "Secure Sockets Layer",
+            "description": "Predecessor to TLS; provides secure communication over a computer network.",
+            "layer": "Presentation",
+            "relationship": "uses",
+            "ports": []
+          },
+          {
+            "name": "HTTP",
+            "extended_name": "Hypertext Transfer Protocol",
+            "description": "Used for transferring web pages.",
+            "layer": "Application",
+            "relationship": "uses",
+            "ports": [
+              "80",
+              "443"
+            ]
+          },
+          {
+            "name": "Mavlink",
+            "extended_name": null,
+            "description": "Lightweight messaging protocol for communication with drones.",
+            "layer": "Application",
+            "relationship": "uses",
+            "ports": []
+          },
+          {
+            "name": "NFS",
+            "extended_name": "Network File System",
+            "description": "Allows a system to access files over a network as if they were on its local disks.",
+            "layer": "Application",
+            "relationship": "uses",
+            "ports": []
+          },
+          {
+            "name": "SMB",
+            "extended_name": "Server Message Block",
+            "description": "Provides shared access to files, printers, and serial ports.",
+            "layer": "Application",
+            "relationship": "uses",
+            "ports": [
+              "445"
+            ]
+          },
+          {
+            "name": "LDAP",
+            "extended_name": "Lightweight Directory Access Protocol",
+            "description": "Accesses and maintains distributed directory information services over an IP network.",
+            "layer": "Application",
+            "relationship": "uses",
+            "ports": [
+              "389"
+            ]
+          },
+          {
+            "name": "DHCP",
+            "extended_name": "Dynamic Host Configuration Protocol",
+            "description": "Assigns IP addresses to devices on a network.",
+            "layer": "Application",
+            "relationship": "connects",
+            "ports": [
+              "67",
+              "68"
+            ]
+          },
+          {
+            "name": "FTP",
+            "extended_name": "File Transfer Protocol",
+            "description": "Used for transferring files between systems over a network.",
+            "layer": "Application",
+            "relationship": "uses",
+            "ports": [
+              "20",
+              "21"
+            ]
+          },
+          {
+            "name": "SSH",
+            "extended_name": "Secure Shell",
+            "description": "Provides secure remote login and command execution.",
+            "layer": "Application",
+            "relationship": "uses",
+            "ports": [
+              "22"
+            ]
+          },
+          {
+            "name": "DNS",
+            "extended_name": "Domain Name System",
+            "description": "Is the system that translates human-readable domain names into IP addresses.",
+            "layer": "Application",
+            "relationship": "uses",
+            "ports": [
+              "53"
+            ]
+          },
+          {
+            "name": "Telnet",
+            "extended_name": null,
+            "description": "Used for remote command-line interface access to devices.",
+            "layer": "Application",
+            "relationship": "uses",
+            "ports": [
+              "23"
+            ]
+          },
+          {
+            "name": "MQTT",
+            "extended_name": "Message Queuing Telemetry Transport",
+            "description": "Lightweight messaging protocol for small sensors and mobile devices.",
+            "layer": "Application",
+            "relationship": "uses",
+            "ports": [
+              "1883",
+              "8883"
+            ]
+          }
+        ]
+      },
+      {
+        "tool": "catalogs_assign_labels",
+        "timestamp": "2026-02-23T18:50:44.576452",
+        "args": {
+          "nodes_count": 12
+        },
+        "result": {
+          "success": true,
+          "labeled_nodes": [
+            {
+              "component_id": 1,
+              "name": "CloudProvider",
+              "type": "CSP",
+              "primary_label": "CSP",
+              "secondary_label": null,
+              "properties": null
+            },
+            {
+              "component_id": 2,
+              "name": "Internet",
+              "type": "Network.WAN",
+              "primary_label": "Network",
+              "secondary_label": "WAN",
+              "properties": null
+            },
+            {
+              "component_id": 3,
+              "name": "InternalLAN",
+              "type": "Network.LAN",
+              "primary_label": "Network",
+              "secondary_label": "LAN",
+              "properties": null
+            },
+            {
+              "component_id": 4,
+              "name": "WordPressVM",
+              "type": "Virtual.VM",
+              "primary_label": "Virtual",
+              "secondary_label": "VM",
+              "properties": null
+            },
+            {
+              "component_id": 5,
+              "name": "MySQLVM",
+              "type": "Virtual.VM",
+              "primary_label": "Virtual",
+              "secondary_label": "VM",
+              "properties": null
+            },
+            {
+              "component_id": 6,
+              "name": "LBVM",
+              "type": "Virtual.VM",
+              "primary_label": "Virtual",
+              "secondary_label": "VM",
+              "properties": null
+            },
+            {
+              "component_id": 7,
+              "name": "WordPressOS",
+              "type": "SystemLayer.OS",
+              "primary_label": "SystemLayer",
+              "secondary_label": "OS",
+              "properties": null
+            },
+            {
+              "component_id": 8,
+              "name": "MySQLOS",
+              "type": "SystemLayer.OS",
+              "primary_label": "SystemLayer",
+              "secondary_label": "OS",
+              "properties": null
+            },
+            {
+              "component_id": 9,
+              "name": "LBOS",
+              "type": "SystemLayer.OS",
+              "primary_label": "SystemLayer",
+              "secondary_label": "OS",
+              "properties": null
+            },
+            {
+              "component_id": 10,
+              "name": "WordPressApp",
+              "type": "Service.Web",
+              "primary_label": "Service",
+              "secondary_label": "Server",
+              "properties": null
+            },
+            {
+              "component_id": 11,
+              "name": "MySQLDB",
+              "type": "Service.DB",
+              "primary_label": "Service",
+              "secondary_label": "Server",
+              "properties": null
+            },
+            {
+              "component_id": 12,
+              "name": "LoadBalancerService",
+              "type": "Service.Web",
+              "primary_label": "Service",
+              "secondary_label": "Server",
+              "properties": null
+            }
+          ],
+          "errors": []
+        }
+      },
+      {
+        "tool": "checkers_validate",
+        "timestamp": "2026-02-23T18:51:06.715576",
+        "args": {
+          "nodes_count": 12,
+          "relationships_count": 16
+        },
+        "result": {
+          "valid": true,
+          "errors": [],
+          "warnings": [],
+          "summary": {
+            "nodes_tested": 12,
+            "relationships_tested": 16,
+            "validation_time": "2026-02-23T17:51:06.664097",
+            "status": "Model successfully validated against MACM database"
+          }
+        }
+      },
+      {
+        "tool": "cypher_convert_architecture",
+        "timestamp": "2026-02-23T18:51:19.139204",
+        "args": {
+          "format_style": "multiline",
+          "nodes_count": 12,
+          "relationships_count": 16
+        },
+        "result": {
+          "success": true,
+          "cypher": "CREATE (CloudProvider:CSP {component_id: '1', name: 'CloudProvider', type: 'CSP', primary_label: 'CSP'}),\n       (Internet:Network:WAN {component_id: '2', name: 'Internet', type: 'Network.WAN', primary_label: 'Network', secondary_label: 'WAN'}),\n       (InternalLAN:Network:LAN {component_id: '3', name: 'InternalLAN', type: 'Network.LAN', primary_label: 'Network', secondary_label: 'LAN'}),\n       (WordPressVM:Virtual:VM {component_id: '4', name: 'WordPressVM', type: 'Virtual.VM', primary_label: 'Virtual', secondary_label: 'VM'}),\n       (MySQLVM:Virtual:VM {component_id: '5', name: 'MySQLVM', type: 'Virtual.VM', primary_label: 'Virtual', secondary_label: 'VM'}),\n       (LBVM:Virtual:VM {component_id: '6', name: 'LBVM', type: 'Virtual.VM', primary_label: 'Virtual', secondary_label: 'VM'}),\n       (WordPressOS:SystemLayer:OS {component_id: '7', name: 'WordPressOS', type: 'SystemLayer.OS', primary_label: 'SystemLayer', secondary_label: 'OS'}),\n       (MySQLOS:SystemLayer:OS {component_id: '8', name: 'MySQLOS', type: 'SystemLayer.OS', primary_label: 'SystemLayer', secondary_label: 'OS'}),\n       (LBOS:SystemLayer:OS {component_id: '9', name: 'LBOS', type: 'SystemLayer.OS', primary_label: 'SystemLayer', secondary_label: 'OS'}),\n       (WordPressApp:Service:Server {component_id: '10', name: 'WordPressApp', type: 'Service.Web', primary_label: 'Service', secondary_label: 'Server'}),\n       (MySQLDB:Service:Server {component_id: '11', name: 'MySQLDB', type: 'Service.DB', primary_label: 'Service', secondary_label: 'Server'}),\n       (LoadBalancerService:Service:Server {component_id: '12', name: 'LoadBalancerService', type: 'Service.Web', primary_label: 'Service', secondary_label: 'Server'}),\n       (CloudProvider)-[:provides {}]->(WordPressVM),\n       (CloudProvider)-[:provides {}]->(MySQLVM),\n       (CloudProvider)-[:provides {}]->(LBVM),\n       (CloudProvider)-[:provides {}]->(Internet),\n       (CloudProvider)-[:provides {}]->(InternalLAN),\n       (WordPressVM)-[:hosts {}]->(WordPressOS),\n       (MySQLVM)-[:hosts {}]->(MySQLOS),\n       (LBVM)-[:hosts {}]->(LBOS),\n       (WordPressOS)-[:hosts {}]->(WordPressApp),\n       (MySQLOS)-[:hosts {}]->(MySQLDB),\n       (LBOS)-[:hosts {}]->(LoadBalancerService),\n       (WordPressApp)-[:uses {}]->(MySQLDB),\n       (LoadBalancerService)-[:uses {}]->(WordPressApp),\n       (InternalLAN)-[:connects {}]->(WordPressVM),\n       (InternalLAN)-[:connects {}]->(MySQLVM),\n       (InternalLAN)-[:connects {}]->(LBVM)",
+          "format": "multiline",
+          "summary": {
+            "nodes_count": 12,
+            "relationships_count": 16,
+            "node_types": 7,
+            "relationship_types": 4,
+            "unique_node_names": 12,
+            "protocols_used": 0
+          }
+        }
+      }
+    ]
+  },
+  "replica": 1,
+  "attempts": 1
+}

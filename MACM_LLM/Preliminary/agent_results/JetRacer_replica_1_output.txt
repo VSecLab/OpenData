@@ -1,0 +1,23 @@
+================================================================================
+MACM Agent Output - JetRacer - Replica 1
+================================================================================
+
+Execution Attempts: 2
+Status: ✗ FAILED
+
+Error Type: ResponseError
+Error Message: error parsing tool call: raw='{"nodes":[{"component_id":"1","name":"JetRacer","type":"HW.IoT.Device"},{"component_id":"2","name":"JetsonNano","type":"HW.SOC"},{"component_id":"3","name":"OS1","type":"SystemLayer.OS"},{"component_id":"4","name":"JupyterLabService","type":"Service.API"},{"component_id":"5","name":"Microcontroller","type":"HW.Microcontroller"},{"component_id":"6","name":"SpeedSensor","type":"HW.IoT.Device"},{"component_id":"7","name":"LAN","type":"Network.LAN"},{"component_id":"7","name":"LAN","type":"Network.LAN"},{"component_id":"8","name":"PC","type":"HW.PC"},{"component_id":"9","name":"User","type":"Party.Human"}]}\', err=invalid character '\\' after top-level value (status code: -1)
+
+
+Tool Usage Summary:
+--------------------------------------------------------------------------------
+Total tool calls: 5
+
+Calls by tool:
+  - checkers_get_database_constraints: 1
+  - catalogs_get_asset_types: 1
+  - catalogs_get_relationship_patterns: 1
+  - catalogs_get_relationship_types: 1
+  - catalogs_get_protocols: 1
+
+⚠️  Note: This replica required 2 attempts to complete
