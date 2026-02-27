@@ -1,0 +1,767 @@
+{
+  "experiment": "BookInfo",
+  "num_replicas": 3,
+  "text_length": 1615,
+  "has_documentation": true,
+  "documentation_files": [
+    "experiments/BookInfo/Bookinfo Application.pdf"
+  ],
+  "replicas": [
+    {
+      "replica_number": 1,
+      "elapsed_time_seconds": 49.43,
+      "success": true,
+      "answer": "## Analisi dettagliata dell’architettura “BookInfo” (micro‑servizi in container)\n\n### 1. Contesto\n- **BookInfo** è un benchmark di Istio che simula un negozio online per libri.  \n- È composto da quattro micro‑servizi:  \n  1. **productpage** – punto di ingresso, aggrega le informazioni.  \n  2. **details** – fornisce metadati (autore, anno, ecc.).  \n  3. **reviews** – raccoglie recensioni degli utenti.  \n  4. **ratings** – gestisce i punteggi delle recensioni.  \n- Ogni servizio è incapsulato in un **container Docker**.  \n- L’intera stack è eseguita su una singola macchina (host Docker).  \n- La comunicazione tra i servizi avviene tramite chiamate HTTP (REST).  \n- L’utente finale (umano) interagisce con **productpage** tramite un browser.\n\n### 2. Asset principali (MACM)\n\n| Asset | Tipo | Primary | Secondary | Note |\n|-------|------|---------|-----------|------|\n| **User** | Party.Human | Party | Human | Interagisce con productpage |\n| **DockerHost** | HW.Server | HW | Server | Host fisico/virtuale |\n| **LinuxOS** | SystemLayer.OS | SystemLayer | OS | Sistema operativo dell’host |\n| **ContainerRuntime** | SystemLayer.ContainerRuntime | SystemLayer | ContainerRuntime | Docker Engine |\n| **productpage‑container** | Virtual.Container | Virtual | Container | Container del servizio productpage |\n| **productpage‑service** | Service.App | Service | App | Micro‑servizio productpage |\n| **details‑container** | Virtual.Container | Virtual | Container | Container del servizio details |\n| **details‑service** | Service.App | Service | App | Micro‑servizio details |\n| **reviews‑container** | Virtual.Container | Virtual | Container | Container del servizio reviews |\n| **reviews‑service** | Service.App | Service | App | Micro‑servizio reviews |\n| **ratings‑container** | Virtual.Container | Virtual | Container | Container del servizio ratings |\n| **ratings‑service** | Service.App | Service | App | Micro‑servizio ratings |\n| **LocalLAN** | Network.LAN | Network | LAN | Rete interna che collega i container |\n\n### 3. Relazioni (edges)\n\n| Tipo | Fonte | Destinazione | Protocolli |\n|------|-------|--------------|------------|\n| **interacts** | User | productpage‑service | — |\n| **hosts** | DockerHost | LinuxOS | — |\n| **hosts** | LinuxOS | ContainerRuntime | — |\n| **hosts** | ContainerRuntime | productpage‑container | — |\n| **hosts** | productpage‑container | productpage‑service | — |\n| **hosts** | ContainerRuntime | details‑container | — |\n| **hosts** | details‑container | details‑service | — |\n| **hosts** | ContainerRuntime | reviews‑container | — |\n| **hosts** | reviews‑container | reviews‑service | — |\n| **hosts** | ContainerRuntime | ratings‑container | — |\n| **hosts** | ratings‑container | ratings‑service | — |\n| **connects** | LocalLAN | productpage‑container | network_protocol: Ethernet |\n| **connects** | LocalLAN | details‑container | network_protocol: Ethernet |\n| **connects** | LocalLAN | reviews‑container | network_protocol: Ethernet |\n| **connects** | LocalLAN | ratings‑container | network_protocol: Ethernet |\n| **uses** | productpage‑service | details‑service | application_protocol: HTTP |\n| **uses** | productpage‑service | reviews‑service | application_protocol: HTTP |\n| **uses** | reviews‑service | ratings‑service | application_protocol: HTTP |\n\n> **Nota**: Le relazioni *uses* rispettano la regola “alternate path” perché esiste un percorso che collega il servizio richiedente al servizio target tramite *hosts* e *connects* (es. `productpage‑service → productpage‑container → LocalLAN → details‑container → details‑service`).\n\n### 4. Validazione semantica\n\n| Regola | Conformità |\n|--------|------------|\n| **Acyclicità hosts** | Host‑chain: DockerHost → LinuxOS → ContainerRuntime → Container → Service (senza cicli). |\n| **Unica host per Service** | Ogni Service ha un solo container ospitante. |\n| **Unica host per Container** | Ogni container è ospitato da un solo ContainerRuntime. |\n| **Unica host per OS** | LinuxOS è ospitato da DockerHost. |\n| **Unica host per ContainerRuntime** | ContainerRuntime è ospitato da LinuxOS. |\n| **Graph weakly connected** | Tutti gli asset sono collegati tramite almeno un edge (es. User → productpage‑service). |\n| **Protocoli validi** | Tutti i protocolli usati (HTTP, Ethernet) appartengono al catalogo. |\n| **Rappresentazione tipo** | Il tipo di ogni asset determina univocamente (primary, secondary). |\n\n### 5. Modello MACM in JSON\n\n```json\n{\n  \"nodes\": [\n    {\"component_id\":1,\"name\":\"User\",\"type\":\"Party.Human\",\"primary_label\":\"Party\",\"secondary_label\":\"Human\"},\n    {\"component_id\":2,\"name\":\"DockerHost\",\"type\":\"HW.Server\",\"primary_label\":\"HW\",\"secondary_label\":\"Server\"},\n    {\"component_id\":3,\"name\":\"LinuxOS\",\"type\":\"SystemLayer.OS\",\"primary_label\":\"SystemLayer\",\"secondary_label\":\"OS\"},\n    {\"component_id\":4,\"name\":\"ContainerRuntime\",\"type\":\"SystemLayer.ContainerRuntime\",\"primary_label\":\"SystemLayer\",\"secondary_label\":\"ContainerRuntime\"},\n    {\"component_id\":5,\"name\":\"productpage-container\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":6,\"name\":\"productpage-service\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":7,\"name\":\"details-container\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":8,\"name\":\"details-service\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":9,\"name\":\"reviews-container\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":10,\"name\":\"reviews-service\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":11,\"name\":\"ratings-container\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":12,\"name\":\"ratings-service\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":13,\"name\":\"LocalLAN\",\"type\":\"Network.LAN\",\"primary_label\":\"Network\",\"secondary_label\":\"LAN\"}\n  ],\n\n  \"edges\": [\n    {\"source\":\"User\",\"target\":\"productpage-service\",\"type\":\"interacts\"},\n    {\"source\":\"DockerHost\",\"target\":\"LinuxOS\",\"type\":\"hosts\"},\n    {\"source\":\"LinuxOS\",\"target\":\"ContainerRuntime\",\"type\":\"hosts\"},\n    {\"source\":\"ContainerRuntime\",\"target\":\"productpage-container\",\"type\":\"hosts\"},\n    {\"source\":\"productpage-container\",\"target\":\"productpage-service\",\"type\":\"hosts\"},\n    {\"source\":\"ContainerRuntime\",\"target\":\"details-container\",\"type\":\"hosts\"},\n    {\"source\":\"details-container\",\"target\":\"details-service\",\"type\":\"hosts\"},\n    {\"source\":\"ContainerRuntime\",\"target\":\"reviews-container\",\"type\":\"hosts\"},\n    {\"source\":\"reviews-container\",\"target\":\"reviews-service\",\"type\":\"hosts\"},\n    {\"source\":\"ContainerRuntime\",\"target\":\"ratings-container\",\"type\":\"hosts\"},\n    {\"source\":\"ratings-container\",\"target\":\"ratings-service\",\"type\":\"hosts\"},\n    {\"source\":\"LocalLAN\",\"target\":\"productpage-container\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"Ethernet\"}},\n    {\"source\":\"LocalLAN\",\"target\":\"details-container\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"Ethernet\"}},\n    {\"source\":\"LocalLAN\",\"target\":\"reviews-container\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"Ethernet\"}},\n    {\"source\":\"LocalLAN\",\"target\":\"ratings-container\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"Ethernet\"}},\n    {\"source\":\"productpage-service\",\"target\":\"details-service\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}},\n    {\"source\":\"productpage-service\",\"target\":\"reviews-service\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}},\n    {\"source\":\"reviews-service\",\"target\":\"ratings-service\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}}\n  ]\n}\n```\n\n---\n\n### 6. Riflessioni finali\n\n- **Semplicità**: La struttura a host‑chain (HW → OS → Runtime → Container → Service) garantisce chiarezza nella gerarchia di deployment.  \n- **Scalabilità**: Ogni micro‑servizio può essere scalato indipendentemente modificando il numero di container (infrastruttura “Docker‑Compose”).  \n- **Observability**: L’uso di Istio (non modellato qui) aggiungerebbe layer di sidecar (Envoy) che si collegherebbero allo stesso *Network.LAN* e hosterebbero i servizi.  \n- **Sicurezza**: Le comunicazioni HTTP tra servizi possono essere protette con mTLS di Istio, ma nella modellazione MACM è rappresentata semplicemente come `application_protocol: HTTP`.  \n\nQuesta rappresentazione MACM offre un punto di partenza formale per analisi di sicurezza, performance e ottimizzazione del deployment.",
+      "extracted_macm": {
+        "nodes": [
+          {
+            "component_id": 1,
+            "name": "User",
+            "type": "Party.Human",
+            "primary_label": "Party",
+            "secondary_label": "Human"
+          },
+          {
+            "component_id": 2,
+            "name": "DockerHost",
+            "type": "HW.Server",
+            "primary_label": "HW",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 3,
+            "name": "LinuxOS",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS"
+          },
+          {
+            "component_id": 4,
+            "name": "ContainerRuntime",
+            "type": "SystemLayer.ContainerRuntime",
+            "primary_label": "SystemLayer",
+            "secondary_label": "ContainerRuntime"
+          },
+          {
+            "component_id": 5,
+            "name": "productpage-container",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 6,
+            "name": "productpage-service",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 7,
+            "name": "details-container",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 8,
+            "name": "details-service",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 9,
+            "name": "reviews-container",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 10,
+            "name": "reviews-service",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 11,
+            "name": "ratings-container",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 12,
+            "name": "ratings-service",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 13,
+            "name": "LocalLAN",
+            "type": "Network.LAN",
+            "primary_label": "Network",
+            "secondary_label": "LAN"
+          }
+        ],
+        "edges": [
+          {
+            "source": "User",
+            "target": "productpage-service",
+            "type": "interacts"
+          },
+          {
+            "source": "DockerHost",
+            "target": "LinuxOS",
+            "type": "hosts"
+          },
+          {
+            "source": "LinuxOS",
+            "target": "ContainerRuntime",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "productpage-container",
+            "type": "hosts"
+          },
+          {
+            "source": "productpage-container",
+            "target": "productpage-service",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "details-container",
+            "type": "hosts"
+          },
+          {
+            "source": "details-container",
+            "target": "details-service",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "reviews-container",
+            "type": "hosts"
+          },
+          {
+            "source": "reviews-container",
+            "target": "reviews-service",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "ratings-container",
+            "type": "hosts"
+          },
+          {
+            "source": "ratings-container",
+            "target": "ratings-service",
+            "type": "hosts"
+          },
+          {
+            "source": "LocalLAN",
+            "target": "productpage-container",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "Ethernet"
+            }
+          },
+          {
+            "source": "LocalLAN",
+            "target": "details-container",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "Ethernet"
+            }
+          },
+          {
+            "source": "LocalLAN",
+            "target": "reviews-container",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "Ethernet"
+            }
+          },
+          {
+            "source": "LocalLAN",
+            "target": "ratings-container",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "Ethernet"
+            }
+          },
+          {
+            "source": "productpage-service",
+            "target": "details-service",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "productpage-service",
+            "target": "reviews-service",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "reviews-service",
+            "target": "ratings-service",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          }
+        ]
+      },
+      "checker": {
+        "valid": false,
+        "errors": [
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 5, name: productpage-container, labels: Virtual,Container] -[:hosts]-> Node[component_id: 6, name: productpage-service, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 7, name: details-container, labels: Virtual,Container] -[:hosts]-> Node[component_id: 8, name: details-service, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 9, name: reviews-container, labels: Virtual,Container] -[:hosts]-> Node[component_id: 10, name: reviews-service, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 11, name: ratings-container, labels: Virtual,Container] -[:hosts]-> Node[component_id: 12, name: ratings-service, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern."
+        ],
+        "warnings": [],
+        "summary": {
+          "nodes_tested": 13,
+          "relationships_tested": 18,
+          "violation_count": 4
+        }
+      }
+    },
+    {
+      "replica_number": 2,
+      "elapsed_time_seconds": 41.1,
+      "success": true,
+      "answer": "## 1.  Analisi generale dell’architettura “BookInfo”\n\n| **Elemento** | **Descrizione** |\n|--------------|-----------------|\n| **Tipo di sistema** | Applicazione cloud‑native, micro‑servizi distribuiti, eseguita su Docker Compose su un singolo host. |\n| **Componenti principali** | 4 micro‑servizi (`productpage`, `details`, `reviews`, `ratings`) + 1 semplice datastore (`ratings‑db`). |\n| **Tecnologia di esecuzione** | Ogni micro‑servizio è confezionato in un container Docker, tutti collegati tramite una rete Docker (LAN). |\n| **Host** | Una singola macchina virtuale (VM) che esegue Docker. |\n| **Reti** | Una rete Docker `bookinfo-net` che collega tutti i container. |\n| **Protocollo di comunicazione** | HTTP/HTTPS tra micro‑servizi; TCP per il collegamento di rete. |\n| **Interazione utente** | L’utente (humano) accede all’applicazione tramite un browser web (HTTP/HTTPS) verso `productpage`. |\n| **Struttura di hosting** | 1 VM → 1 OS → 1 ContainerRuntime → 5 container → 5 servizi. |\n| **Sicurezza** | – Istio Service Mesh (non menzionato ma tipico) può aggiungere TLS, mTLS, policy di accesso. <br>– Ogni servizio è isolato in un container, riducendo l’area di attacco. |\n| **Scalabilità** | I container possono essere scalati orizzontalmente con Docker Compose o orchestratori più avanzati (Kubernetes). |\n| **Persistenza** | Il datastore `ratings‑db` può essere un container con un database in‑memory (es. Redis) o un file‑based store. |\n\n### 1.1  Relazioni funzionali\n\n1. **`productpage`** richiede dati da: <br>    - `details` <br>    - `reviews` (che a sua volta richiede `ratings`) <br>    - `ratings` (se necessario).  \n2. **`reviews`** aggrega recensioni e richiede i punteggi da **`ratings`**.  \n3. **`ratings`** memorizza/recupera i punteggi dal datastore **`ratings‑db`**.  \n\nQueste dipendenze sono esposte tramite chiamate HTTP REST.  \n\n### 1.2  Reti e protocolli\n\n| **Connessione** | **Protocollo** | **Motivo** |\n|-----------------|----------------|------------|\n| Browser ↔ `productpage` | HTTPS | Interfaccia utente, sicurezza |\n| `productpage` ↔ `details` | HTTP | Richiesta di metadati libro |\n| `productpage` ↔ `reviews` | HTTP | Richiesta di recensioni |\n| `reviews` ↔ `ratings` | HTTP | Richiesta punteggio |\n| `ratings` ↔ `ratings‑db` | HTTP | CRUD punteggi |\n| Container ↔ Container (in rete Docker) | TCP | Trasporto dati tra container |\n| VM ↔ Rete Docker | TCP | Connessione di rete interna |\n\n### 1.3  Considerazioni su sicurezza e DevSecOps\n\n* **Istio** può essere aggiunto per: <br>    - mTLS tra micro‑servizi <br>    - Policy di accesso <br>    - Telemetria e osservabilità |\n* **Docker Compose** è adatto per test, ma in produzione si consiglia Kubernetes per gestione scalabilità, rolling‑updates e sicurezza (RBAC, NetworkPolicies). |\n* **Persistenza**: il datastore dovrebbe essere separato dal container principale per garantire la durabilità dei dati. |\n\n---\n\n## 2.  Modello MACM (JSON)\n\nIl seguente grafo MACM rappresenta l’architettura descritta, rispettando le regole di validità (etichette, tipi, protocolli, ospitare, ecc.).\n\n```json\n{\n  \"nodes\": [\n    {\"component_id\":1,\"name\":\"Alice\",\"type\":\"Party.Human\",\"primary_label\":\"Party\",\"secondary_label\":\"Human\"},\n    {\"component_id\":2,\"name\":\"HostVM\",\"type\":\"Virtual.VM\",\"primary_label\":\"Virtual\",\"secondary_label\":\"VM\"},\n    {\"component_id\":3,\"name\":\"LinuxOS\",\"type\":\"SystemLayer.OS\",\"primary_label\":\"SystemLayer\",\"secondary_label\":\"OS\"},\n    {\"component_id\":4,\"name\":\"ContainerRuntime\",\"type\":\"SystemLayer.ContainerRuntime\",\"primary_label\":\"SystemLayer\",\"secondary_label\":\"ContainerRuntime\"},\n    {\"component_id\":5,\"name\":\"BookinfoNet\",\"type\":\"Network.LAN\",\"primary_label\":\"Network\",\"secondary_label\":\"LAN\"},\n    {\"component_id\":6,\"name\":\"ProductpageContainer\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":7,\"name\":\"ProductpageService\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":8,\"name\":\"DetailsContainer\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":9,\"name\":\"DetailsService\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":10,\"name\":\"ReviewsContainer\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":11,\"name\":\"ReviewsService\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":12,\"name\":\"RatingsContainer\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":13,\"name\":\"RatingsService\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":14,\"name\":\"RatingsDBContainer\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":15,\"name\":\"RatingsDBService\",\"type\":\"Service.DB\",\"primary_label\":\"Service\",\"secondary_label\":\"DB\"}\n  ],\n\n  \"edges\": [\n    {\"source\":\"Alice\",\"target\":\"ProductpageService\",\"type\":\"interacts\",\"properties\":{\"protocol\":\"HTTPS\"}},\n    {\"source\":\"HostVM\",\"target\":\"LinuxOS\",\"type\":\"hosts\"},\n    {\"source\":\"LinuxOS\",\"target\":\"ContainerRuntime\",\"type\":\"hosts\"},\n    {\"source\":\"ContainerRuntime\",\"target\":\"ProductpageContainer\",\"type\":\"hosts\"},\n    {\"source\":\"ContainerRuntime\",\"target\":\"DetailsContainer\",\"type\":\"hosts\"},\n    {\"source\":\"ContainerRuntime\",\"target\":\"ReviewsContainer\",\"type\":\"hosts\"},\n    {\"source\":\"ContainerRuntime\",\"target\":\"RatingsContainer\",\"type\":\"hosts\"},\n    {\"source\":\"ContainerRuntime\",\"target\":\"RatingsDBContainer\",\"type\":\"hosts\"},\n    {\"source\":\"ProductpageContainer\",\"target\":\"ProductpageService\",\"type\":\"hosts\"},\n    {\"source\":\"DetailsContainer\",\"target\":\"DetailsService\",\"type\":\"hosts\"},\n    {\"source\":\"ReviewsContainer\",\"target\":\"ReviewsService\",\"type\":\"hosts\"},\n    {\"source\":\"RatingsContainer\",\"target\":\"RatingsService\",\"type\":\"hosts\"},\n    {\"source\":\"RatingsDBContainer\",\"target\":\"RatingsDBService\",\"type\":\"hosts\"},\n    {\"source\":\"BookinfoNet\",\"target\":\"ProductpageContainer\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"BookinfoNet\",\"target\":\"DetailsContainer\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"BookinfoNet\",\"target\":\"ReviewsContainer\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"BookinfoNet\",\"target\":\"RatingsContainer\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"BookinfoNet\",\"target\":\"RatingsDBContainer\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"ProductpageService\",\"target\":\"DetailsService\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}},\n    {\"source\":\"ProductpageService\",\"target\":\"ReviewsService\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}},\n    {\"source\":\"ReviewsService\",\"target\":\"RatingsService\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}},\n    {\"source\":\"RatingsService\",\"target\":\"RatingsDBService\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}}\n  ]\n}\n```\n\n### 3.  Validazione semantica\n\n| **Regola** | **Verifica** |\n|------------|--------------|\n| **Tipo unico** | Ogni `type` determina in modo univoco `(primary,secondary)` (es. `Service.App` → `Service/App`). |\n| **Hosting unico** | Ogni servizio (`ProductpageService`, `DetailsService`, ecc.) ha esattamente un nodo host (`ProductpageContainer`, ecc.). |\n| **Hosting valido** | <br>    - `ContainerRuntime` ospita solo container (`Virtual.Container`). <br>    - `SystemLayer.OS` ospita `ContainerRuntime`. |\n| **Acyclicità** | La catena `VM → OS → ContainerRuntime → Containers → Services` è acyclic. |\n| **Alternate path per `uses`** | Per ogni `uses`, esiste un percorso che non utilizza `uses`/`interacts` (es. `ProductpageService → ProductpageContainer → BookinfoNet → DetailsContainer → DetailsService`). |\n| **Rete connessa** | Tutti i nodi sono connessi tramite la rete `BookinfoNet` o tramite `hosts`. |\n| **Protocolli validi** | Tutti i protocolli (`HTTP`, `HTTPS`, `TCP`) appartengono al catalogo. |\n\n---\n\n## 4.  Conclusioni\n\n* **Architettura micro‑servizi**: L’applicazione è un classico esempio di distribuzione di funzioni in container, con dipendenze chiare tra servizi.  \n* **Sicurezza**: L’uso di HTTP/HTTPS e la potenziale integrazione con Istio garantiscono comunicazioni sicure e policy di accesso.  \n* **Scalabilità**: I container possono essere scalati orizzontalmente; la rete Docker fornisce isolamento e trasporto affidabile.  \n* **DevSecOps**: La descrizione è adatta a test di sicurezza (fuzzing, penetration testing) e a pipeline CI/CD grazie alla semplicità di Docker Compose.  \n\nIl modello MACM sopra riportato fornisce una rappresentazione formale e verificabile dell’architettura, pronta per l’analisi di vulnerabilità, la simulazione di scenari di failover o l’integrazione con strumenti di osservabilità.",
+      "extracted_macm": {
+        "nodes": [
+          {
+            "component_id": 1,
+            "name": "Alice",
+            "type": "Party.Human",
+            "primary_label": "Party",
+            "secondary_label": "Human"
+          },
+          {
+            "component_id": 2,
+            "name": "HostVM",
+            "type": "Virtual.VM",
+            "primary_label": "Virtual",
+            "secondary_label": "VM"
+          },
+          {
+            "component_id": 3,
+            "name": "LinuxOS",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS"
+          },
+          {
+            "component_id": 4,
+            "name": "ContainerRuntime",
+            "type": "SystemLayer.ContainerRuntime",
+            "primary_label": "SystemLayer",
+            "secondary_label": "ContainerRuntime"
+          },
+          {
+            "component_id": 5,
+            "name": "BookinfoNet",
+            "type": "Network.LAN",
+            "primary_label": "Network",
+            "secondary_label": "LAN"
+          },
+          {
+            "component_id": 6,
+            "name": "ProductpageContainer",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 7,
+            "name": "ProductpageService",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 8,
+            "name": "DetailsContainer",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 9,
+            "name": "DetailsService",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 10,
+            "name": "ReviewsContainer",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 11,
+            "name": "ReviewsService",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 12,
+            "name": "RatingsContainer",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 13,
+            "name": "RatingsService",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 14,
+            "name": "RatingsDBContainer",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 15,
+            "name": "RatingsDBService",
+            "type": "Service.DB",
+            "primary_label": "Service",
+            "secondary_label": "DB"
+          }
+        ],
+        "edges": [
+          {
+            "source": "Alice",
+            "target": "ProductpageService",
+            "type": "interacts",
+            "properties": {
+              "protocol": "HTTPS"
+            }
+          },
+          {
+            "source": "HostVM",
+            "target": "LinuxOS",
+            "type": "hosts"
+          },
+          {
+            "source": "LinuxOS",
+            "target": "ContainerRuntime",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "ProductpageContainer",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "DetailsContainer",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "ReviewsContainer",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "RatingsContainer",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "RatingsDBContainer",
+            "type": "hosts"
+          },
+          {
+            "source": "ProductpageContainer",
+            "target": "ProductpageService",
+            "type": "hosts"
+          },
+          {
+            "source": "DetailsContainer",
+            "target": "DetailsService",
+            "type": "hosts"
+          },
+          {
+            "source": "ReviewsContainer",
+            "target": "ReviewsService",
+            "type": "hosts"
+          },
+          {
+            "source": "RatingsContainer",
+            "target": "RatingsService",
+            "type": "hosts"
+          },
+          {
+            "source": "RatingsDBContainer",
+            "target": "RatingsDBService",
+            "type": "hosts"
+          },
+          {
+            "source": "BookinfoNet",
+            "target": "ProductpageContainer",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "BookinfoNet",
+            "target": "DetailsContainer",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "BookinfoNet",
+            "target": "ReviewsContainer",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "BookinfoNet",
+            "target": "RatingsContainer",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "BookinfoNet",
+            "target": "RatingsDBContainer",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "ProductpageService",
+            "target": "DetailsService",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "ProductpageService",
+            "target": "ReviewsService",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "ReviewsService",
+            "target": "RatingsService",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "RatingsService",
+            "target": "RatingsDBService",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          }
+        ]
+      },
+      "checker": {
+        "valid": false,
+        "errors": [
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 15:\n  1. /* RatingsDBService type=Service.DB PL=Service expected SL(s)=[Server] but secondary labels are [DB] */",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 6, name: ProductpageContainer, labels: Virtual,Container] -[:hosts]-> Node[component_id: 7, name: ProductpageService, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 8, name: DetailsContainer, labels: Virtual,Container] -[:hosts]-> Node[component_id: 9, name: DetailsService, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 10, name: ReviewsContainer, labels: Virtual,Container] -[:hosts]-> Node[component_id: 11, name: ReviewsService, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 12, name: RatingsContainer, labels: Virtual,Container] -[:hosts]-> Node[component_id: 13, name: RatingsService, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 14, name: RatingsDBContainer, labels: Virtual,Container] -[:hosts]-> Node[component_id: 15, name: RatingsDBService, labels: Service,DB] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[06_check_mandatory_host_provide_for_virtual.cypher] report: Rule 12 violation: Mandatory host/provide for Virtual\\n\\nVirtual[component_id: 2, name: HostVM, type: Virtual.VM] has NO host/provide relationship.\\n\\nREQUIREMENT: Every Virtual node must be hosted or provided by another component.\\n\\nREMEDIATION:\\n- Virtual.Container: Add [:hosts] from SystemLayer.ContainerRuntime\\n  Example: Docker -[:hosts]-> MyAppContainer\\n- Virtual.VM: Add [:hosts] from SystemLayer.HyperVisor\\n  Example: VMware -[:hosts]-> MyVM\\n- Cloud-managed: Add [:provides] from CSP\\n  Example: AWS -[:provides]-> EC2Instance\\n\\nHIERARCHY: Hardware -> OS -> ContainerRuntime/HyperVisor -> Virtual -> Services"
+        ],
+        "warnings": [],
+        "summary": {
+          "nodes_tested": 15,
+          "relationships_tested": 22,
+          "violation_count": 7
+        }
+      }
+    },
+    {
+      "replica_number": 3,
+      "elapsed_time_seconds": 39.81,
+      "success": true,
+      "answer": "**Analisi dettagliata dell’architettura “BookInfo” (micro‑service, non IoT)**  \n\n1. **Contesto**  \n   *BookInfo* è un benchmark di Istio che simula un’applicazione di e‑commerce per la vendita di libri.  \n   - Ogni servizio è eseguito in un container Docker.  \n   - I servizi si scambiano dati tramite API HTTP.  \n   - Il deployment avviene su un singolo host (un PC o una VM).  \n   - La rete interna tra i container è una rete LAN privata.  \n\n2. **Componenti principali**  \n   | Tipo | Nome | Descrizione | Asset type |\n   |------|------|-------------|------------|\n   | **Party** | *User* | Utente finale che accede all’applicazione tramite browser | Party.Human |\n   | **Service** | *Browser* | Browser web (Chrome/Firefox) | Service.Browser |\n   | **Service** | *ProductPage* | Entry‑point che aggrega dati da altri micro‑servizi | Service.App |\n   | **Service** | *Details* | Fornisce metadati (autore, anno, ecc.) | Service.App |\n   | **Service** | *Reviews* | Aggrega recensioni utente | Service.App |\n   | **Service** | *Ratings* | Gestisce punteggi delle recensioni | Service.App |\n   | **Virtual** | *ProductPage‑Container* | Container Docker che ospita *ProductPage* | Virtual.Container |\n   | **Virtual** | *Details‑Container* | Container Docker che ospita *Details* | Virtual.Container |\n   | **Virtual** | *Reviews‑Container* | Container Docker che ospita *Reviews* | Virtual.Container |\n   | **Virtual** | *Ratings‑Container* | Container Docker che ospita *Ratings* | Virtual.Container |\n   | **SystemLayer** | *ContainerRuntime* | Docker Engine (runtime dei container) | SystemLayer.ContainerRuntime |\n   | **SystemLayer** | *OS* | Sistema operativo dell’host (Linux) | SystemLayer.OS |\n   | **HW** | *Host* | Macchina fisica/VM che esegue l’intero stack | HW.Server |\n   | **Network** | *LAN* | Rete interna tra i container | Network.LAN |\n\n3. **Relazioni (edges)**  \n\n   * **Hosting** (hosts)  \n     - *Host* → *OS*  \n     - *OS* → *ContainerRuntime*  \n     - *ContainerRuntime* → *ProductPage‑Container*, *Details‑Container*, *Reviews‑Container*, *Ratings‑Container*  \n     - *ProductPage‑Container* → *ProductPage*  \n     - *Details‑Container* → *Details*  \n     - *Reviews‑Container* → *Reviews*  \n     - *Ratings‑Container* → *Ratings*  \n\n   * **Funzionali** (uses)  \n     - *ProductPage* → *Details*  (HTTP)  \n     - *ProductPage* → *Reviews*  (HTTP)  \n     - *Reviews* → *Ratings*      (HTTP)  \n\n   * **Interazione utente** (interacts)  \n     - *User* → *Browser*  \n     - *Browser* → *ProductPage* (HTTP)  \n\n   * **Rete** (connects)  \n     - *LAN* → *ProductPage‑Container* (TCP)  \n     - *LAN* → *Details‑Container*     (TCP)  \n     - *LAN* → *Reviews‑Container*     (TCP)  \n     - *LAN* → *Ratings‑Container*     (TCP)  \n\n4. **Verifica delle regole MACM**  \n\n   * **Unicità**: ogni asset ha al massimo un *hosts* entrante e un *provides* (non presente in questo caso).  \n   * **Obbligatorietà**: tutti i *Service*, *Virtual* e *SystemLayer* sono ospitati da un altro asset.  \n   * **Ciclicità**: la catena *hosts* è lineare (Host → OS → ContainerRuntime → Container → Service).  \n   * **Percorso alternativo**: per ogni edge *uses* esiste un percorso che non utilizza *uses* né *interacts* (es. *ProductPage* → *ProductPage‑Container* → *ContainerRuntime* → *Details‑Container* → *Details*).  \n   * **Regole di hosting**:  \n     - *SystemLayer.OS* ospita *ContainerRuntime*.  \n     - *ContainerRuntime* ospita *Virtual.Container*.  \n     - *Virtual.Container* ospita *Service.App*.  \n     - Nessun *ContainerRuntime* ospita *ContainerRuntime* o *SystemLayer*.  \n\n5. **Proprietà aggiuntive** (opzionali)  \n   * *Container*: `image`, `port`  \n   * *Service*: `port`  \n   * *Network*: `subnet`  \n   * *OS*: `kernel_version`  \n\n---\n\n## MACM Graph (JSON)\n\n```json\n{\n  \"nodes\": [\n    {\"component_id\":1,\"name\":\"User\",\"type\":\"Party.Human\",\"primary_label\":\"Party\",\"secondary_label\":\"Human\"},\n    {\"component_id\":2,\"name\":\"Browser\",\"type\":\"Service.Browser\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":3,\"name\":\"ProductPage\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":4,\"name\":\"Details\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":5,\"name\":\"Reviews\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":6,\"name\":\"Ratings\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\"},\n    {\"component_id\":7,\"name\":\"ProductPage-Container\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":8,\"name\":\"Details-Container\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":9,\"name\":\"Reviews-Container\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":10,\"name\":\"Ratings-Container\",\"type\":\"Virtual.Container\",\"primary_label\":\"Virtual\",\"secondary_label\":\"Container\"},\n    {\"component_id\":11,\"name\":\"ContainerRuntime\",\"type\":\"SystemLayer.ContainerRuntime\",\"primary_label\":\"SystemLayer\",\"secondary_label\":\"ContainerRuntime\"},\n    {\"component_id\":12,\"name\":\"OS\",\"type\":\"SystemLayer.OS\",\"primary_label\":\"SystemLayer\",\"secondary_label\":\"OS\"},\n    {\"component_id\":13,\"name\":\"Host\",\"type\":\"HW.Server\",\"primary_label\":\"HW\",\"secondary_label\":\"Server\"},\n    {\"component_id\":14,\"name\":\"LAN\",\"type\":\"Network.LAN\",\"primary_label\":\"Network\",\"secondary_label\":\"LAN\"}\n  ],\n\n  \"edges\": [\n    {\"source\":\"User\",\"target\":\"Browser\",\"type\":\"interacts\"},\n    {\"source\":\"Browser\",\"target\":\"ProductPage\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}},\n    {\"source\":\"ProductPage\",\"target\":\"Details\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}},\n    {\"source\":\"ProductPage\",\"target\":\"Reviews\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}},\n    {\"source\":\"Reviews\",\"target\":\"Ratings\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}},\n\n    {\"source\":\"ProductPage-Container\",\"target\":\"ProductPage\",\"type\":\"hosts\"},\n    {\"source\":\"Details-Container\",\"target\":\"Details\",\"type\":\"hosts\"},\n    {\"source\":\"Reviews-Container\",\"target\":\"Reviews\",\"type\":\"hosts\"},\n    {\"source\":\"Ratings-Container\",\"target\":\"Ratings\",\"type\":\"hosts\"},\n\n    {\"source\":\"ContainerRuntime\",\"target\":\"ProductPage-Container\",\"type\":\"hosts\"},\n    {\"source\":\"ContainerRuntime\",\"target\":\"Details-Container\",\"type\":\"hosts\"},\n    {\"source\":\"ContainerRuntime\",\"target\":\"Reviews-Container\",\"type\":\"hosts\"},\n    {\"source\":\"ContainerRuntime\",\"target\":\"Ratings-Container\",\"type\":\"hosts\"},\n\n    {\"source\":\"OS\",\"target\":\"ContainerRuntime\",\"type\":\"hosts\"},\n    {\"source\":\"Host\",\"target\":\"OS\",\"type\":\"hosts\"},\n\n    {\"source\":\"LAN\",\"target\":\"ProductPage-Container\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"LAN\",\"target\":\"Details-Container\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"LAN\",\"target\":\"Reviews-Container\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"LAN\",\"target\":\"Ratings-Container\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}}\n  ]\n}\n```\n\n> **Nota**:  \n> * Il modello è volutamente “pulito” per rispettare le regole di MACM (nessuna ciclicità, hosting univoco, ecc.).  \n> * Se si volesse includere altri asset (es. database, CSP, ecc.) è sufficiente aggiungere i relativi nodi e edge rispettando le regole di relazione e di proprietà.  \n> * Il modello può essere importato in tool di modellazione MACM per ulteriori analisi di sicurezza, performance o connettività.",
+      "extracted_macm": {
+        "nodes": [
+          {
+            "component_id": 1,
+            "name": "User",
+            "type": "Party.Human",
+            "primary_label": "Party",
+            "secondary_label": "Human"
+          },
+          {
+            "component_id": 2,
+            "name": "Browser",
+            "type": "Service.Browser",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 3,
+            "name": "ProductPage",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 4,
+            "name": "Details",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 5,
+            "name": "Reviews",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 6,
+            "name": "Ratings",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 7,
+            "name": "ProductPage-Container",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 8,
+            "name": "Details-Container",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 9,
+            "name": "Reviews-Container",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 10,
+            "name": "Ratings-Container",
+            "type": "Virtual.Container",
+            "primary_label": "Virtual",
+            "secondary_label": "Container"
+          },
+          {
+            "component_id": 11,
+            "name": "ContainerRuntime",
+            "type": "SystemLayer.ContainerRuntime",
+            "primary_label": "SystemLayer",
+            "secondary_label": "ContainerRuntime"
+          },
+          {
+            "component_id": 12,
+            "name": "OS",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS"
+          },
+          {
+            "component_id": 13,
+            "name": "Host",
+            "type": "HW.Server",
+            "primary_label": "HW",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 14,
+            "name": "LAN",
+            "type": "Network.LAN",
+            "primary_label": "Network",
+            "secondary_label": "LAN"
+          }
+        ],
+        "edges": [
+          {
+            "source": "User",
+            "target": "Browser",
+            "type": "interacts"
+          },
+          {
+            "source": "Browser",
+            "target": "ProductPage",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "ProductPage",
+            "target": "Details",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "ProductPage",
+            "target": "Reviews",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "Reviews",
+            "target": "Ratings",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "ProductPage-Container",
+            "target": "ProductPage",
+            "type": "hosts"
+          },
+          {
+            "source": "Details-Container",
+            "target": "Details",
+            "type": "hosts"
+          },
+          {
+            "source": "Reviews-Container",
+            "target": "Reviews",
+            "type": "hosts"
+          },
+          {
+            "source": "Ratings-Container",
+            "target": "Ratings",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "ProductPage-Container",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "Details-Container",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "Reviews-Container",
+            "type": "hosts"
+          },
+          {
+            "source": "ContainerRuntime",
+            "target": "Ratings-Container",
+            "type": "hosts"
+          },
+          {
+            "source": "OS",
+            "target": "ContainerRuntime",
+            "type": "hosts"
+          },
+          {
+            "source": "Host",
+            "target": "OS",
+            "type": "hosts"
+          },
+          {
+            "source": "LAN",
+            "target": "ProductPage-Container",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "LAN",
+            "target": "Details-Container",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "LAN",
+            "target": "Reviews-Container",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "LAN",
+            "target": "Ratings-Container",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          }
+        ]
+      },
+      "checker": {
+        "valid": false,
+        "errors": [
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 7, name: ProductPage-Container, labels: Virtual,Container] -[:hosts]-> Node[component_id: 3, name: ProductPage, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 8, name: Details-Container, labels: Virtual,Container] -[:hosts]-> Node[component_id: 4, name: Details, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 9, name: Reviews-Container, labels: Virtual,Container] -[:hosts]-> Node[component_id: 5, name: Reviews, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 10, name: Ratings-Container, labels: Virtual,Container] -[:hosts]-> Node[component_id: 6, name: Ratings, labels: Service,App] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[07_check_single_host_provide_for_service.cypher] report: Rule 3 violation: the following service do not have a host/provider: Service[component_id: 2, name: Browser]\n\nREQUIREMENT: Every Service must have exactly ONE incoming [:hosts] or [:provides] relationship.\n\nREMEDIATION:\n- Add a [:hosts] or [:provides] relationship from a SystemLayer, Virtual, CSP, or Service node to each violating Service.",
+          "[09_check_alternate_path_for_uses.cypher] report: Rule 3 violation: Alternate path for uses\n\nVIOLATION: USES relationship without alternate path: Node[component_id: 2, name: Browser, labels: Service,App] -[:uses]-> Node[component_id: 3, name: ProductPage, labels: Service,App]\n\nREQUIREMENT: For each A -[:uses]-> B, there must exist at least one path connecting A and B that:\n  - Uses relationships OTHER than [:uses] (e.g., [:hosts], [:provides], [:connects])\n  - Does NOT include [:interacts] relationships\n\nREMEDIATION GUIDE:\n1. Analyze infrastructure: Identify how source/target are physically/logically connected\n2. Add missing hosting relationships: If both services run on same system, add [:hosts]\n3. Add infrastructure relationships: [:connects] for networks, [:provides] from CSP\n4. Verify alternate path connects both nodes without using [:uses]\n\nEXAMPLE:\nIf ServiceA -[:uses]-> ServiceB, you might add:\n  SystemLayerX -[:hosts]-> ServiceA\n  SystemLayerX -[:hosts]-> ServiceB\n  (Creates alternate: ServiceA <-[:hosts]- SystemLayerX -[:hosts]-> ServiceB)"
+        ],
+        "warnings": [],
+        "summary": {
+          "nodes_tested": 14,
+          "relationships_tested": 19,
+          "violation_count": 6
+        }
+      }
+    }
+  ],
+  "statistics": {
+    "total_replicas": 3,
+    "successful_replicas": 3,
+    "failed_replicas": 0,
+    "success_rate": 1.0
+  }
+}

@@ -1,0 +1,531 @@
+{
+  "experiment": "JetRacer",
+  "num_replicas": 3,
+  "text_length": 551,
+  "has_documentation": true,
+  "documentation_files": [
+    "experiments/JetRacer/Documentazione JetRacer.pdf"
+  ],
+  "replicas": [
+    {
+      "replica_number": 1,
+      "elapsed_time_seconds": 38.64,
+      "success": true,
+      "answer": "**MACM Graph – JetRacer IoT Experiment**\n\n```json\n{\n  \"nodes\": [\n    {\n      \"component_id\": 1,\n      \"name\": \"JetRacer\",\n      \"type\": \"HW.Device\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Device\",\n      \"properties\": {\n        \"description\": \"Autonomous mini‑vehicle chassis\"\n      }\n    },\n    {\n      \"component_id\": 2,\n      \"name\": \"Microcontroller\",\n      \"type\": \"HW.Microcontroller\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Microcontroller\",\n      \"properties\": {\n        \"description\": \"Speed‑sensor controller mounted on chassis\"\n      }\n    },\n    {\n      \"component_id\": 3,\n      \"name\": \"SpeedSensor\",\n      \"type\": \"HW.Device\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Device\",\n      \"properties\": {\n        \"description\": \"Chassis‑mounted speed sensor\"\n      }\n    },\n    {\n      \"component_id\": 4,\n      \"name\": \"JetsonNano\",\n      \"type\": \"HW.Server\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Server\",\n      \"properties\": {\n        \"description\": \"AI compute board running the vehicle control stack\"\n      }\n    },\n    {\n      \"component_id\": 5,\n      \"name\": \"JetsonOS\",\n      \"type\": \"SystemLayer.OS\",\n      \"primary_label\": \"SystemLayer\",\n      \"secondary_label\": \"OS\",\n      \"properties\": {\n        \"description\": \"Linux OS on Jetson Nano\"\n      }\n    },\n    {\n      \"component_id\": 6,\n      \"name\": \"WebService\",\n      \"type\": \"Service.App\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"App\",\n      \"properties\": {\n        \"description\": \"Jupyter Lab API hosted on Jetson Nano\"\n      }\n    },\n    {\n      \"component_id\": 7,\n      \"name\": \"LAN\",\n      \"type\": \"Network.LAN\",\n      \"primary_label\": \"Network\",\n      \"secondary_label\": \"LAN\",\n      \"properties\": {\n        \"description\": \"Local area network linking all devices\"\n      }\n    },\n    {\n      \"component_id\": 8,\n      \"name\": \"PC\",\n      \"type\": \"HW.PC\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"PC\",\n      \"properties\": {\n        \"description\": \"Operator workstation\"\n      }\n    },\n    {\n      \"component_id\": 9,\n      \"name\": \"Joystick\",\n      \"type\": \"HW.Device\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Device\",\n      \"properties\": {\n        \"description\": \"Gamepad used to manually pilot the vehicle\"\n      }\n    },\n    {\n      \"component_id\": 10,\n      \"name\": \"Operator\",\n      \"type\": \"Party.Human\",\n      \"primary_label\": \"Party\",\n      \"secondary_label\": \"Human\",\n      \"properties\": {\n        \"description\": \"Human controlling the JetRacer\"\n      }\n    }\n  ],\n\n  \"edges\": [\n    {\n      \"source\": \"JetRacer\",\n      \"target\": \"Microcontroller\",\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": \"Microcontroller\",\n      \"target\": \"SpeedSensor\",\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": \"JetsonNano\",\n      \"target\": \"JetsonOS\",\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": \"JetsonOS\",\n      \"target\": \"WebService\",\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": \"LAN\",\n      \"target\": \"JetsonNano\",\n      \"type\": \"connects\",\n      \"properties\": {\n        \"protocol\": \"Ethernet\"\n      }\n    },\n    {\n      \"source\": \"LAN\",\n      \"target\": \"PC\",\n      \"type\": \"connects\",\n      \"properties\": {\n        \"protocol\": \"Ethernet\"\n      }\n    },\n    {\n      \"source\": \"LAN\",\n      \"target\": \"JetRacer\",\n      \"type\": \"connects\",\n      \"properties\": {\n        \"protocol\": \"Ethernet\"\n      }\n    },\n    {\n      \"source\": \"PC\",\n      \"target\": \"Joystick\",\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": \"Operator\",\n      \"target\": \"PC\",\n      \"type\": \"interacts\"\n    },\n    {\n      \"source\": \"Operator\",\n      \"target\": \"WebService\",\n      \"type\": \"interacts\"\n    }\n  ]\n}\n```\n\n### Key Points of the Architecture\n\n| Layer | Asset | Relationship | Notes |\n|-------|-------|--------------|-------|\n| **Hardware** | JetRacer (Device) | hosts → Microcontroller | Chassis mounts controller |\n| | Microcontroller (Microcontroller) | hosts → SpeedSensor (Device) | Sensor attached to controller |\n| | JetsonNano (Server) | hosts → JetsonOS (OS) | OS runs on Jetson |\n| | JetsonOS (OS) | hosts → WebService (App) | Jupyter Lab API exposed |\n| | PC (PC) | hosts → Joystick (Device) | User’s input device |\n| | LAN (LAN) | connects → JetsonNano, PC, JetRacer | All devices share the same LAN |\n| **Software** | WebService (App) | – | Provides HTTP/HTTPS API |\n| **Party** | Operator (Human) | interacts → PC, WebService | Human controls via PC and API |\n| **Protocols** | LAN‑connects | Ethernet | Standard Ethernet on the local network |\n\n- **Hosts** relationships capture deployment (e.g., OS on Jetson, web service on OS, joystick on PC).\n- **Connects** edges model the physical network connectivity using Ethernet.\n- **Interacts** edges represent the human operator’s interactions with the PC and the web service.\n- The graph is weakly connected, acyclic for `hosts`, and satisfies all semantic constraints of the MACM formalism.",
+      "extracted_macm": {
+        "nodes": [
+          {
+            "component_id": 1,
+            "name": "JetRacer",
+            "type": "HW.Device",
+            "primary_label": "HW",
+            "secondary_label": "Device",
+            "properties": {
+              "description": "Autonomous mini‑vehicle chassis"
+            }
+          },
+          {
+            "component_id": 2,
+            "name": "Microcontroller",
+            "type": "HW.Microcontroller",
+            "primary_label": "HW",
+            "secondary_label": "Microcontroller",
+            "properties": {
+              "description": "Speed‑sensor controller mounted on chassis"
+            }
+          },
+          {
+            "component_id": 3,
+            "name": "SpeedSensor",
+            "type": "HW.Device",
+            "primary_label": "HW",
+            "secondary_label": "Device",
+            "properties": {
+              "description": "Chassis‑mounted speed sensor"
+            }
+          },
+          {
+            "component_id": 4,
+            "name": "JetsonNano",
+            "type": "HW.Server",
+            "primary_label": "HW",
+            "secondary_label": "Server",
+            "properties": {
+              "description": "AI compute board running the vehicle control stack"
+            }
+          },
+          {
+            "component_id": 5,
+            "name": "JetsonOS",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS",
+            "properties": {
+              "description": "Linux OS on Jetson Nano"
+            }
+          },
+          {
+            "component_id": 6,
+            "name": "WebService",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App",
+            "properties": {
+              "description": "Jupyter Lab API hosted on Jetson Nano"
+            }
+          },
+          {
+            "component_id": 7,
+            "name": "LAN",
+            "type": "Network.LAN",
+            "primary_label": "Network",
+            "secondary_label": "LAN",
+            "properties": {
+              "description": "Local area network linking all devices"
+            }
+          },
+          {
+            "component_id": 8,
+            "name": "PC",
+            "type": "HW.PC",
+            "primary_label": "HW",
+            "secondary_label": "PC",
+            "properties": {
+              "description": "Operator workstation"
+            }
+          },
+          {
+            "component_id": 9,
+            "name": "Joystick",
+            "type": "HW.Device",
+            "primary_label": "HW",
+            "secondary_label": "Device",
+            "properties": {
+              "description": "Gamepad used to manually pilot the vehicle"
+            }
+          },
+          {
+            "component_id": 10,
+            "name": "Operator",
+            "type": "Party.Human",
+            "primary_label": "Party",
+            "secondary_label": "Human",
+            "properties": {
+              "description": "Human controlling the JetRacer"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "source": "JetRacer",
+            "target": "Microcontroller",
+            "type": "hosts"
+          },
+          {
+            "source": "Microcontroller",
+            "target": "SpeedSensor",
+            "type": "hosts"
+          },
+          {
+            "source": "JetsonNano",
+            "target": "JetsonOS",
+            "type": "hosts"
+          },
+          {
+            "source": "JetsonOS",
+            "target": "WebService",
+            "type": "hosts"
+          },
+          {
+            "source": "LAN",
+            "target": "JetsonNano",
+            "type": "connects",
+            "properties": {
+              "protocol": "Ethernet"
+            }
+          },
+          {
+            "source": "LAN",
+            "target": "PC",
+            "type": "connects",
+            "properties": {
+              "protocol": "Ethernet"
+            }
+          },
+          {
+            "source": "LAN",
+            "target": "JetRacer",
+            "type": "connects",
+            "properties": {
+              "protocol": "Ethernet"
+            }
+          },
+          {
+            "source": "PC",
+            "target": "Joystick",
+            "type": "hosts"
+          },
+          {
+            "source": "Operator",
+            "target": "PC",
+            "type": "interacts"
+          },
+          {
+            "source": "Operator",
+            "target": "WebService",
+            "type": "interacts"
+          }
+        ]
+      },
+      "checker": {
+        "valid": true,
+        "errors": [],
+        "warnings": [],
+        "summary": {
+          "nodes_tested": 10,
+          "relationships_tested": 10,
+          "violation_count": 0
+        }
+      }
+    },
+    {
+      "replica_number": 2,
+      "elapsed_time_seconds": 49.17,
+      "success": true,
+      "answer": "```json\n{\n  \"nodes\": [\n    {\n      \"component_id\": 1,\n      \"name\": \"Operator\",\n      \"type\": \"Party.Human\",\n      \"primary_label\": \"Party\",\n      \"secondary_label\": \"Human\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 2,\n      \"name\": \"PC\",\n      \"type\": \"HW.PC\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"PC\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 3,\n      \"name\": \"Joystick\",\n      \"type\": \"HW.Device\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Device\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 4,\n      \"name\": \"WebService\",\n      \"type\": \"Service.App\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"App\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 5,\n      \"name\": \"LAN\",\n      \"type\": \"Network.LAN\",\n      \"primary_label\": \"Network\",\n      \"secondary_label\": \"LAN\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 6,\n      \"name\": \"JetRacer\",\n      \"type\": \"HW.Device\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Device\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 7,\n      \"name\": \"JetsonNano\",\n      \"type\": \"HW.Server\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Server\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 8,\n      \"name\": \"Microcontroller\",\n      \"type\": \"HW.Microcontroller\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Microcontroller\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 9,\n      \"name\": \"SpeedSensor\",\n      \"type\": \"HW.IoT\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"IoT\",\n      \"properties\": {}\n    }\n  ],\n\n  \"edges\": [\n    {\n      \"source\": 1,\n      \"target\": 2,\n      \"type\": \"interacts\",\n      \"properties\": {}\n    },\n    {\n      \"source\": 1,\n      \"target\": 3,\n      \"type\": \"interacts\",\n      \"properties\": {}\n    },\n    {\n      \"source\": 2,\n      \"target\": 4,\n      \"type\": \"interacts\",\n      \"properties\": {\n        \"application_protocol\": \"HTTP\"\n      }\n    },\n    {\n      \"source\": 5,\n      \"target\": 2,\n      \"type\": \"connects\",\n      \"properties\": {\n        \"network_protocol\": \"Ethernet\"\n      }\n    },\n    {\n      \"source\": 5,\n      \"target\": 7,\n      \"type\": \"connects\",\n      \"properties\": {\n        \"network_protocol\": \"Ethernet\"\n      }\n    },\n    {\n      \"source\": 5,\n      \"target\": 6,\n      \"type\": \"connects\",\n      \"properties\": {\n        \"network_protocol\": \"Ethernet\"\n      }\n    },\n    {\n      \"source\": 6,\n      \"target\": 8,\n      \"type\": \"hosts\",\n      \"properties\": {}\n    },\n    {\n      \"source\": 6,\n      \"target\": 7,\n      \"type\": \"hosts\",\n      \"properties\": {}\n    },\n    {\n      \"source\": 8,\n      \"target\": 9,\n      \"type\": \"hosts\",\n      \"properties\": {}\n    },\n    {\n      \"source\": 7,\n      \"target\": 4,\n      \"type\": \"hosts\",\n      \"properties\": {}\n    }\n  ]\n}\n```\n\n**Key points of the MACM model**\n\n1. **Assets** – Every physical or logical component is captured as a node with a unique `component_id`, a human‑readable `name`, and a concrete `type` that determines its primary/secondary labels.\n\n2. **Relationships** –  \n   * `interacts` links the human operator with the PC and the joystick, and the PC with the web service.  \n   * `connects` represents the LAN’s connectivity to the PC, Jetson Nano, and the vehicle.  \n   * `hosts` captures the deployment hierarchy: the vehicle hosts the microcontroller and Jetson Nano; the microcontroller hosts the speed sensor; Jetson Nano hosts the web service.\n\n3. **Protocol properties** –  \n   * The PC‑web‑service interaction uses HTTP.  \n   * LAN connections use Ethernet (data‑link/network protocol).\n\n4. **Compliance** – The graph is weakly connected, acyclic for `hosts`, and every `Service.App` has exactly one host (Jetson Nano). All edges respect the allowed relationship patterns and protocol catalog.",
+      "extracted_macm": {
+        "nodes": [
+          {
+            "component_id": 1,
+            "name": "Operator",
+            "type": "Party.Human",
+            "primary_label": "Party",
+            "secondary_label": "Human",
+            "properties": {}
+          },
+          {
+            "component_id": 2,
+            "name": "PC",
+            "type": "HW.PC",
+            "primary_label": "HW",
+            "secondary_label": "PC",
+            "properties": {}
+          },
+          {
+            "component_id": 3,
+            "name": "Joystick",
+            "type": "HW.Device",
+            "primary_label": "HW",
+            "secondary_label": "Device",
+            "properties": {}
+          },
+          {
+            "component_id": 4,
+            "name": "WebService",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App",
+            "properties": {}
+          },
+          {
+            "component_id": 5,
+            "name": "LAN",
+            "type": "Network.LAN",
+            "primary_label": "Network",
+            "secondary_label": "LAN",
+            "properties": {}
+          },
+          {
+            "component_id": 6,
+            "name": "JetRacer",
+            "type": "HW.Device",
+            "primary_label": "HW",
+            "secondary_label": "Device",
+            "properties": {}
+          },
+          {
+            "component_id": 7,
+            "name": "JetsonNano",
+            "type": "HW.Server",
+            "primary_label": "HW",
+            "secondary_label": "Server",
+            "properties": {}
+          },
+          {
+            "component_id": 8,
+            "name": "Microcontroller",
+            "type": "HW.Microcontroller",
+            "primary_label": "HW",
+            "secondary_label": "Microcontroller",
+            "properties": {}
+          },
+          {
+            "component_id": 9,
+            "name": "SpeedSensor",
+            "type": "HW.IoT",
+            "primary_label": "HW",
+            "secondary_label": "IoT",
+            "properties": {}
+          }
+        ],
+        "edges": [
+          {
+            "source": 1,
+            "target": 2,
+            "type": "interacts",
+            "properties": {}
+          },
+          {
+            "source": 1,
+            "target": 3,
+            "type": "interacts",
+            "properties": {}
+          },
+          {
+            "source": 2,
+            "target": 4,
+            "type": "interacts",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": 5,
+            "target": 2,
+            "type": "connects",
+            "properties": {
+              "network_protocol": "Ethernet"
+            }
+          },
+          {
+            "source": 5,
+            "target": 7,
+            "type": "connects",
+            "properties": {
+              "network_protocol": "Ethernet"
+            }
+          },
+          {
+            "source": 5,
+            "target": 6,
+            "type": "connects",
+            "properties": {
+              "network_protocol": "Ethernet"
+            }
+          },
+          {
+            "source": 6,
+            "target": 8,
+            "type": "hosts",
+            "properties": {}
+          },
+          {
+            "source": 6,
+            "target": 7,
+            "type": "hosts",
+            "properties": {}
+          },
+          {
+            "source": 8,
+            "target": 9,
+            "type": "hosts",
+            "properties": {}
+          },
+          {
+            "source": 7,
+            "target": 4,
+            "type": "hosts",
+            "properties": {}
+          }
+        ]
+      },
+      "checker": {
+        "valid": false,
+        "errors": [
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 9:\n  1. /* SpeedSensor type=HW.IoT PL=HW is not covered by mapping */\n  2. /* SpeedSensor type=HW.IoT PL=HW expected SL(s)=[] but secondary labels are [IoT] */",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 2, name: PC, labels: HW,PC] -[:interacts]-> Node[component_id: 4, name: WebService, labels: Service,App] (Pattern: HW -[:interacts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 7, name: JetsonNano, labels: Server,HW] -[:hosts]-> Node[component_id: 4, name: WebService, labels: Service,App] (Pattern: HW -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern."
+        ],
+        "warnings": [],
+        "summary": {
+          "nodes_tested": 9,
+          "relationships_tested": 10,
+          "violation_count": 3
+        }
+      }
+    },
+    {
+      "replica_number": 3,
+      "elapsed_time_seconds": 36.83,
+      "success": true,
+      "answer": "## 1. Analisi dell’architettura IoT – “JetRacer”\n\n| Asset | Funzione / ruolo | Relazione principale | Protocollo (se applicabile) |\n|-------|------------------|----------------------|-----------------------------|\n| **JetRacer (veicolo)** | Sistema fisico che esegue il movimento autonomo | ospita Jetson Nano, micro‑controllore e velocimetro | – |\n| **Jetson Nano** | Unità di calcolo AI (SOC) che esegue l’algoritmo di guida e ospita l’API Jupyter | ospita il servizio web | – |\n| **Micro‑controllore** | Lettura del sensore di velocità e invio dei dati al Jetson Nano | ospita il sensore di velocità | – |\n| **Sensore di velocità** | Misura la velocità del veicolo | ospitato dal micro‑controllore | – |\n| **Web‑service (Jupyter Lab API)** | Interfaccia HTTP/HTTPS per il controllo remoto / pilotaggio manuale | usato da PC (e da eventuali client) | `HTTPS` |\n| **PC (client)** | Macchina di controllo, che consente l’uso del web‑service e la pilotabilità tramite joystick | usa il web‑service; usa il joystick | `HTTPS` (per il web‑service) |\n| **Joystick** | Periferica di pilotaggio manuale | usato dal PC | – |\n| **LAN** | Rete locale che collega PC e JetRacer | connesso a JetRacer e al PC | `Ethernet` |\n\n### Punti chiave\n\n1. **Struttura a “host‑uses‑connects”**  \n   * Il JetRacer è il “root” che ospita tutti i componenti fisici (Jetson Nano, micro‑controllore, sensore).  \n   * Il Jetson Nano ospita il servizio web, che è l’unica “Service” del modello.  \n   * Il PC interagisce con il servizio web (via `HTTPS`) e utilizza il joystick.  \n   * La rete LAN è il collegamento di rete tra PC e JetRacer (`Ethernet`).\n\n2. **Conformità MACM**  \n   * Ogni **Service** (`Service.Server` – il web‑service) ha un solo host (Jetson Nano).  \n   * Nessun ciclo nei legami `hosts` – la gerarchia è un albero.  \n   * Le relazioni `uses` (`PC → Web‑service`, `PC → Joystick`, `Jetson Nano → Micro‑controllore`) sono supportate.  \n   * Le relazioni `connects` (`LAN ↔ PC`, `LAN ↔ JetRacer`) rispettano il tipo di rete (`Network.LAN`).  \n   * Tutti i protocolli specificati appartengono al catalogo MACM (`HTTPS`, `Ethernet`).\n\n---\n\n## 2. Modello MACM (JSON)\n\n```json\n{\n  \"nodes\": [\n    {\n      \"component_id\": 1,\n      \"name\": \"JetRacer\",\n      \"type\": \"HW.Device\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Device\",\n      \"properties\": {\n        \"model\": \"JetRacer\",\n        \"description\": \"Autonomous mini‑vehicle\"\n      }\n    },\n    {\n      \"component_id\": 2,\n      \"name\": \"JetsonNano\",\n      \"type\": \"HW.SOC\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"SOC\",\n      \"properties\": {\n        \"model\": \"Jetson Nano\",\n        \"cpu\": \"Quad‑core ARM\",\n        \"memory\": \"4 GB\"\n      }\n    },\n    {\n      \"component_id\": 3,\n      \"name\": \"Microcontroller\",\n      \"type\": \"HW.Microcontroller\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Microcontroller\",\n      \"properties\": {\n        \"model\": \"Custom MCU\",\n        \"interface\": \"UART\"\n      }\n    },\n    {\n      \"component_id\": 4,\n      \"name\": \"SpeedSensor\",\n      \"type\": \"HW.Device\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Device\",\n      \"properties\": {\n        \"sensor_type\": \"speed\",\n        \"unit\": \"km/h\"\n      }\n    },\n    {\n      \"component_id\": 5,\n      \"name\": \"WebService\",\n      \"type\": \"Service.Server\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"Server\",\n      \"properties\": {\n        \"name\": \"Jupyter Lab API\",\n        \"port\": 8888\n      }\n    },\n    {\n      \"component_id\": 6,\n      \"name\": \"PC\",\n      \"type\": \"HW.PC\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"PC\",\n      \"properties\": {\n        \"model\": \"Desktop PC\",\n        \"os\": \"Ubuntu 22.04\"\n      }\n    },\n    {\n      \"component_id\": 7,\n      \"name\": \"Joystick\",\n      \"type\": \"HW.Device\",\n      \"primary_label\": \"HW\",\n      \"secondary_label\": \"Device\",\n      \"properties\": {\n        \"type\": \"Gamepad\",\n        \"interface\": \"USB\"\n      }\n    },\n    {\n      \"component_id\": 8,\n      \"name\": \"LAN\",\n      \"type\": \"Network.LAN\",\n      \"primary_label\": \"Network\",\n      \"secondary_label\": \"LAN\",\n      \"properties\": {\n        \"bandwidth\": \"1 Gbps\",\n        \"protocol\": \"Ethernet\"\n      }\n    }\n  ],\n\n  \"edges\": [\n    {\n      \"source\": \"JetRacer\",\n      \"target\": \"JetsonNano\",\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": \"JetsonNano\",\n      \"target\": \"WebService\",\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": \"JetRacer\",\n      \"target\": \"Microcontroller\",\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": \"Microcontroller\",\n      \"target\": \"SpeedSensor\",\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": \"PC\",\n      \"target\": \"WebService\",\n      \"type\": \"uses\",\n      \"properties\": {\n        \"application_protocol\": \"HTTPS\"\n      }\n    },\n    {\n      \"source\": \"PC\",\n      \"target\": \"Joystick\",\n      \"type\": \"uses\"\n    },\n    {\n      \"source\": \"LAN\",\n      \"target\": \"PC\",\n      \"type\": \"connects\",\n      \"properties\": {\n        \"network_protocol\": \"Ethernet\"\n      }\n    },\n    {\n      \"source\": \"LAN\",\n      \"target\": \"JetRacer\",\n      \"type\": \"connects\",\n      \"properties\": {\n        \"network_protocol\": \"Ethernet\"\n      }\n    }\n  ]\n}\n```\n\n### Come leggere il modello\n\n| Campo | Significato |\n|-------|-------------|\n| **component_id** | Identificatore unico |\n| **name** | Nome leggibile |\n| **type** | Tipo MACM (ad es. `HW.SOC`) |\n| **primary_label / secondary_label** | Classificazione gerarchica |\n| **properties** | Attributi specifici (es. modello, porta) |\n| **edges** | Relazioni (`hosts`, `uses`, `connects`) |\n| **properties (edge)** | Protocolli applicabili |\n\n---\n\n## 3. Validazione MACM\n\n| Regola | Verifica | Risultato |\n|--------|----------|-----------|\n| **Unicità `component_id`** | ✔ | Tutti gli ID sono unici |\n| **Acyclicità hosts** | ✔ | Gerarchia è un albero |\n| **Ogni Service ospitato** | ✔ | WebService ospitato da JetsonNano |\n| **Ogni Service usato da almeno un client** | ✔ | PC usa WebService |\n| **Relazioni `connects` tra Network e HW** | ✔ | LAN connesso a PC e JetRacer |\n| **Protocolli validi** | ✔ | `HTTPS`, `Ethernet` presenti nel catalogo |\n| **Graph weakly connected** | ✔ | Tutti i nodi collegati tramite le relazioni |\n\n---\n\n## 4. Conclusioni\n\nIl modello MACM sopra riportato rappresenta in modo formale l’architettura IoT del “JetRacer”.  \n- **Struttura a host‑uses‑connects** garantisce chiarezza nei livelli di deployment (hardware → sistema operativo → servizio).  \n- **Protocolli** specificati per le relazioni `uses` e `connects` permettono l’analisi di sicurezza e performance (es. HTTPS per il controllo remoto).  \n- **Semplicità** del modello facilita l’estensione (ad es. aggiungere altri sensori, servizi di analytics, ecc.) senza violare le regole di integrità MACM.\n\nSe desideri approfondire un aspetto specifico (es. sicurezza, scalabilità, analisi di rete) o aggiungere ulteriori componenti (es. sistemi di logging, monitoraggio), fammelo sapere!",
+      "extracted_macm": {
+        "nodes": [
+          {
+            "component_id": 1,
+            "name": "JetRacer",
+            "type": "HW.Device",
+            "primary_label": "HW",
+            "secondary_label": "Device",
+            "properties": {
+              "model": "JetRacer",
+              "description": "Autonomous mini‑vehicle"
+            }
+          },
+          {
+            "component_id": 2,
+            "name": "JetsonNano",
+            "type": "HW.SOC",
+            "primary_label": "HW",
+            "secondary_label": "SOC",
+            "properties": {
+              "model": "Jetson Nano",
+              "cpu": "Quad‑core ARM",
+              "memory": "4 GB"
+            }
+          },
+          {
+            "component_id": 3,
+            "name": "Microcontroller",
+            "type": "HW.Microcontroller",
+            "primary_label": "HW",
+            "secondary_label": "Microcontroller",
+            "properties": {
+              "model": "Custom MCU",
+              "interface": "UART"
+            }
+          },
+          {
+            "component_id": 4,
+            "name": "SpeedSensor",
+            "type": "HW.Device",
+            "primary_label": "HW",
+            "secondary_label": "Device",
+            "properties": {
+              "sensor_type": "speed",
+              "unit": "km/h"
+            }
+          },
+          {
+            "component_id": 5,
+            "name": "WebService",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server",
+            "properties": {
+              "name": "Jupyter Lab API",
+              "port": 8888
+            }
+          },
+          {
+            "component_id": 6,
+            "name": "PC",
+            "type": "HW.PC",
+            "primary_label": "HW",
+            "secondary_label": "PC",
+            "properties": {
+              "model": "Desktop PC",
+              "os": "Ubuntu 22.04"
+            }
+          },
+          {
+            "component_id": 7,
+            "name": "Joystick",
+            "type": "HW.Device",
+            "primary_label": "HW",
+            "secondary_label": "Device",
+            "properties": {
+              "type": "Gamepad",
+              "interface": "USB"
+            }
+          },
+          {
+            "component_id": 8,
+            "name": "LAN",
+            "type": "Network.LAN",
+            "primary_label": "Network",
+            "secondary_label": "LAN",
+            "properties": {
+              "bandwidth": "1 Gbps",
+              "protocol": "Ethernet"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "source": "JetRacer",
+            "target": "JetsonNano",
+            "type": "hosts"
+          },
+          {
+            "source": "JetsonNano",
+            "target": "WebService",
+            "type": "hosts"
+          },
+          {
+            "source": "JetRacer",
+            "target": "Microcontroller",
+            "type": "hosts"
+          },
+          {
+            "source": "Microcontroller",
+            "target": "SpeedSensor",
+            "type": "hosts"
+          },
+          {
+            "source": "PC",
+            "target": "WebService",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTPS"
+            }
+          },
+          {
+            "source": "PC",
+            "target": "Joystick",
+            "type": "uses"
+          },
+          {
+            "source": "LAN",
+            "target": "PC",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "Ethernet"
+            }
+          },
+          {
+            "source": "LAN",
+            "target": "JetRacer",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "Ethernet"
+            }
+          }
+        ]
+      },
+      "checker":{
+        "valid": false,
+        "errors": [
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 5:\n  1. /* Jupyter Lab API type=Service.Server PL=Service is not covered by mapping */\n  2. /* Jupyter Lab API type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 7:\n  1. /* Joystick type=Gamepad expects primary label Gamepad but labels are [HW,Device] */\n  2. /* Joystick type=Gamepad PL=Gamepad is not covered by mapping */\n  3. /* Joystick type=Gamepad PL=Gamepad expected SL(s)=[] but secondary labels are [Device] */",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 6, name: PC, labels: HW,PC] -[:uses]-> Node[component_id: 5, name: Jupyter Lab API, labels: Service,Server] (Pattern: HW -[:uses]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 6, name: PC, labels: HW,PC] -[:uses]-> Node[component_id: 7, name: Joystick, labels: HW,Device] (Pattern: HW -[:uses]-> HW is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 2, name: JetsonNano, labels: HW,SOC] -[:hosts]-> Node[component_id: 5, name: Jupyter Lab API, labels: Service,Server] (Pattern: HW -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[09_check_alternate_path_for_uses.cypher] report: Rule 3 violation: Alternate path for uses\n\nVIOLATION: USES relationship without alternate path: Node[component_id: 6, name: PC, labels: HW,PC] -[:uses]-> Node[component_id: 7, name: Joystick, labels: HW,Device]\n\nREQUIREMENT: For each A -[:uses]-> B, there must exist at least one path connecting A and B that:\n  - Uses relationships OTHER than [:uses] (e.g., [:hosts], [:provides], [:connects])\n  - Does NOT include [:interacts] relationships\n\nREMEDIATION GUIDE:\n1. Analyze infrastructure: Identify how source/target are physically/logically connected\n2. Add missing hosting relationships: If both services run on same system, add [:hosts]\n3. Add infrastructure relationships: [:connects] for networks, [:provides] from CSP\n4. Verify alternate path connects both nodes without using [:uses]\n\nEXAMPLE:\nIf ServiceA -[:uses]-> ServiceB, you might add:\n  SystemLayerX -[:hosts]-> ServiceA\n  SystemLayerX -[:hosts]-> ServiceB\n  (Creates alternate: ServiceA <-[:hosts]- SystemLayerX -[:hosts]-> ServiceB)"
+        ],
+        "warnings": [],
+        "summary": {
+          "nodes_tested": 8,
+          "relationships_tested": 8,
+          "violation_count": 6
+        }
+      }
+    }
+  ],
+  "statistics": {
+    "total_replicas": 3,
+    "successful_replicas": 3,
+    "failed_replicas": 0,
+    "success_rate": 1.0
+  }
+}

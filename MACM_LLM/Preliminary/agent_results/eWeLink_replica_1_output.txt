@@ -1,0 +1,131 @@
+================================================================================
+MACM Agent Output - eWeLink - Replica 1
+================================================================================
+
+Execution Attempts: 1
+Status: ✓ SUCCESS
+
+Agent Output:
+--------------------------------------------------------------------------------
+```json
+{
+  "status": "invalid",
+  "errors": [
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 0 missing required field 'source'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 0 missing required field 'target'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 0 missing required field 'type'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 1 missing required field 'source'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 1 missing required field 'target'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 1 missing required field 'type'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 2 missing required field 'source'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 2 missing required field 'target'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 2 missing required field 'type'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 3 missing required field 'source'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 3 missing required field 'target'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 3 missing required field 'type'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 4 missing required field 'source'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 4 missing required field 'target'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 4 missing required field 'type'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 5 missing required field 'source'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 5 missing required field 'target'"
+    },
+    {
+      "type": "missing_required_field",
+      "message": "Relationship 5 missing required field 'type'"
+    }
+  ]
+}
+```
+
+--------------------------------------------------------------------------------
+
+
+Intermediate Steps:
+--------------------------------------------------------------------------------
+
+Step 1:
+  Action: tool='checkers_get_database_constraints' tool_input={} log='\nInvoking: `checkers_get_database_constraints` with `{}`\n\n\n' message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:54:43.994545948Z', 'done': True, 'done_reason': 'stop', 'total_duration': 1886322539, 'load_duration': 244286135, 'prompt_eval_count': 1721, 'prompt_eval_duration': 730064894, 'eval_count': 87, 'eval_duration': 846507426, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8ba4-3221-7f93-82dd-f2dceede5f66', tool_calls=[{'name': 'checkers_get_database_constraints', 'args': {}, 'id': 'fedd785f-505a-4515-928b-2d11157a21ea', 'type': 'tool_call'}], usage_metadata={'input_tokens': 1721, 'output_tokens': 87, 'total_tokens': 1808}, tool_call_chunks=[{'name': 'checkers_get_database_constraints', 'args': '{}', 'id': 'fedd785f-505a-4515-928b-2d11157a21ea', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='fedd785f-505a-4515-928b-2d11157a21ea'
+  Observation: {'title': 'MACM database constraints', 'summary': [{'name': 'Required node properties', 'short': 'All nodes must have component_id (numeric string >0), primary_label (string), and type (string). Validate properties before insertion.'}, {'name': 'Asset type validity', 'short': 'Primary label must match node type prefix; secondary labels must follow predefined mappings (e.g., HW.Server needs [HW, Server] labels).'}, {'name': 'Single hosting per asset', 'short': 'Each asset can have at most one inc... (truncated)
+
+Step 2:
+  Action: tool='catalogs_get_asset_types' tool_input={} log='\nInvoking: `catalogs_get_asset_types` with `{}`\n\n\n' message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:54:46.828504545Z', 'done': True, 'done_reason': 'stop', 'total_duration': 2574698843, 'load_duration': 233875705, 'prompt_eval_count': 2367, 'prompt_eval_duration': 314534992, 'eval_count': 193, 'eval_duration': 1883668337, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8ba4-3a84-7760-86fa-c8d80abcd0c7', tool_calls=[{'name': 'catalogs_get_asset_types', 'args': {}, 'id': '50f6aff3-1988-4f90-b8d7-b224fd4a36e9', 'type': 'tool_call'}], usage_metadata={'input_tokens': 2367, 'output_tokens': 193, 'total_tokens': 2560}, tool_call_chunks=[{'name': 'catalogs_get_asset_types', 'args': '{}', 'id': '50f6aff3-1988-4f90-b8d7-b224fd4a36e9', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='50f6aff3-1988-4f90-b8d7-b224fd4a36e9'
+  Observation: [{'type': 'Party.Human', 'description': 'A user or external actor interacting with the system.'}, {'type': 'Party.LegalEntity', 'description': 'A legally recognized individual or organization with rights and obligations.'}, {'type': 'Party.Group', 'description': 'A collection of related entities or individuals acting as a unified organizational unit.'}, {'type': 'CSP', 'description': 'A service provider offering communication network connectivity.'}, {'type': 'HW.MEC', 'description': 'A Multi-Ac... (truncated)
+
+Step 3:
+  Action: tool='catalogs_get_relationship_patterns' tool_input={} log='\nInvoking: `catalogs_get_relationship_patterns` with `{}`\n\n\n' message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:54:48.315389533Z', 'done': True, 'done_reason': 'stop', 'total_duration': 1286697456, 'load_duration': 231414062, 'prompt_eval_count': 3974, 'prompt_eval_duration': 731158717, 'eval_count': 17, 'eval_duration': 159810874, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8ba4-4559-79b2-8507-ab3b9c1fac74', tool_calls=[{'name': 'catalogs_get_relationship_patterns', 'args': {}, 'id': '91ef2de2-9bf3-4873-924b-6674d8ea554f', 'type': 'tool_call'}], usage_metadata={'input_tokens': 3974, 'output_tokens': 17, 'total_tokens': 3991}, tool_call_chunks=[{'name': 'catalogs_get_relationship_patterns', 'args': '{}', 'id': '91ef2de2-9bf3-4873-924b-6674d8ea554f', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='91ef2de2-9bf3-4873-924b-6674d8ea554f'
+  Observation: [{'source': 'Party', 'type': 'interacts', 'target': ['Service']}, {'source': 'Party', 'type': 'interacts', 'target': ['HW']}, {'source': 'Party', 'type': 'interacts', 'target': ['Network']}, {'source': 'Party', 'type': 'interacts', 'target': ['Party']}, {'source': 'Party', 'type': 'interacts', 'target': ['Virtual']}, {'source': 'Party', 'type': 'interacts', 'target': ['SystemLayer']}, {'source': 'Party', 'type': 'interacts', 'target': ['CSP']}, {'source': 'Service', 'type': 'uses', 'target': ['S... (truncated)
+
+Step 4:
+  Action: tool='catalogs_get_relationship_types' tool_input={} log='\nInvoking: `catalogs_get_relationship_types` with `{}`\n\n\n' message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:54:49.489838225Z', 'done': True, 'done_reason': 'stop', 'total_duration': 946960993, 'load_duration': 227820816, 'prompt_eval_count': 4528, 'prompt_eval_duration': 284613533, 'eval_count': 17, 'eval_duration': 164138025, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8ba4-4b3e-7663-af6d-5cd87c9a7495', tool_calls=[{'name': 'catalogs_get_relationship_types', 'args': {}, 'id': '804af3d7-6e65-4ef3-89da-cd8608f70869', 'type': 'tool_call'}], usage_metadata={'input_tokens': 4528, 'output_tokens': 17, 'total_tokens': 4545}, tool_call_chunks=[{'name': 'catalogs_get_relationship_types', 'args': '{}', 'id': '804af3d7-6e65-4ef3-89da-cd8608f70869', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='804af3d7-6e65-4ef3-89da-cd8608f70869'
+  Observation: ['uses: Functional dependency between services/systems, requires alternate path without uses/interacts', 'hosts: Hosting/deployment relation, constrained by SystemLayer/Virtual/HW rules', 'provides: CSP provides services, resources, networks, or hardware', 'connects: Connectivity relation, can include protocol info', 'interacts: Interaction relation, usually between Party and other assets']
+
+Step 5:
+  Action: tool='catalogs_assign_labels' tool_input={'nodes': [{'component_id': '1', 'name': 'Sonoff Micro', 'type': 'HW.IoT.Device'}, {'component_id': '2', 'name': 'Smartphone', 'type': 'HW.UE'}, {'component_id': '3', 'name': 'eWeLink Mobile App', 'type': 'Service.App'}, {'component_id': '4', 'name': 'Coolkit Backend', 'type': 'Service'}, {'component_id': '5', 'name': 'eWeLink Platform', 'type': 'Service'}, {'component_id': '6', 'name': 'Home WiFi Network', 'type': 'Network.WiFi'}, {'component_id': '7', 'name': 'SoftAP Network', 'type': 'Network.WiFi'}, {'component_id': '8', 'name': 'Internet', 'type': 'Network.WAN'}, {'component_id': '9', 'name': 'Cloud Provider', 'type': 'CSP'}]} log="\nInvoking: `catalogs_assign_labels` with `{'nodes': [{'component_id': '1', 'name': 'Sonoff Micro', 'type': 'HW.IoT.Device'}, {'component_id': '2', 'name': 'Smartphone', 'type': 'HW.UE'}, {'component_id': '3', 'name': 'eWeLink Mobile App', 'type': 'Service.App'}, {'component_id': '4', 'name': 'Coolkit Backend', 'type': 'Service'}, {'component_id': '5', 'name': 'eWeLink Platform', 'type': 'Service'}, {'component_id': '6', 'name': 'Home WiFi Network', 'type': 'Network.WiFi'}, {'component_id': '7', 'name': 'SoftAP Network', 'type': 'Network.WiFi'}, {'component_id': '8', 'name': 'Internet', 'type': 'Network.WAN'}, {'component_id': '9', 'name': 'Cloud Provider', 'type': 'CSP'}]}`\n\n\n" message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:55:20.411318265Z', 'done': True, 'done_reason': 'stop', 'total_duration': 30622873780, 'load_duration': 243569730, 'prompt_eval_count': 4632, 'prompt_eval_duration': 124084014, 'eval_count': 2826, 'eval_duration': 28575800565, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8ba4-501b-73c0-91b6-4552df8bdcc4', tool_calls=[{'name': 'catalogs_assign_labels', 'args': {'nodes': [{'component_id': '1', 'name': 'Sonoff Micro', 'type': 'HW.IoT.Device'}, {'component_id': '2', 'name': 'Smartphone', 'type': 'HW.UE'}, {'component_id': '3', 'name': 'eWeLink Mobile App', 'type': 'Service.App'}, {'component_id': '4', 'name': 'Coolkit Backend', 'type': 'Service'}, {'component_id': '5', 'name': 'eWeLink Platform', 'type': 'Service'}, {'component_id': '6', 'name': 'Home WiFi Network', 'type': 'Network.WiFi'}, {'component_id': '7', 'name': 'SoftAP Network', 'type': 'Network.WiFi'}, {'component_id': '8', 'name': 'Internet', 'type': 'Network.WAN'}, {'component_id': '9', 'name': 'Cloud Provider', 'type': 'CSP'}]}, 'id': '116b4de6-3a32-4883-b665-89987b834d6a', 'type': 'tool_call'}], usage_metadata={'input_tokens': 4632, 'output_tokens': 2826, 'total_tokens': 7458}, tool_call_chunks=[{'name': 'catalogs_assign_labels', 'args': '{"nodes": [{"component_id": "1", "name": "Sonoff Micro", "type": "HW.IoT.Device"}, {"component_id": "2", "name": "Smartphone", "type": "HW.UE"}, {"component_id": "3", "name": "eWeLink Mobile App", "type": "Service.App"}, {"component_id": "4", "name": "Coolkit Backend", "type": "Service"}, {"component_id": "5", "name": "eWeLink Platform", "type": "Service"}, {"component_id": "6", "name": "Home WiFi Network", "type": "Network.WiFi"}, {"component_id": "7", "name": "SoftAP Network", "type": "Network.WiFi"}, {"component_id": "8", "name": "Internet", "type": "Network.WAN"}, {"component_id": "9", "name": "Cloud Provider", "type": "CSP"}]}', 'id': '116b4de6-3a32-4883-b665-89987b834d6a', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='116b4de6-3a32-4883-b665-89987b834d6a'
+  Observation: {'success': True, 'labeled_nodes': [{'component_id': 1, 'name': 'Sonoff Micro', 'type': 'HW.IoT.Device', 'primary_label': 'HW', 'secondary_label': 'IoT', 'properties': None}, {'component_id': 2, 'name': 'Smartphone', 'type': 'HW.UE', 'primary_label': 'HW', 'secondary_label': 'UE', 'properties': None}, {'component_id': 3, 'name': 'eWeLink Mobile App', 'type': 'Service.App', 'primary_label': 'Service', 'secondary_label': 'App', 'properties': None}, {'component_id': 4, 'name': 'Coolkit Backend', 't... (truncated)
+
+Step 6:
+  Action: tool='checkers_validate' tool_input={'architecture_model': {'nodes': [{'component_id': '1', 'name': 'Sonoff Micro', 'primary_label': 'HW', 'secondary_label': 'IoT', 'type': 'HW.IoT.Device'}, {'component_id': '2', 'name': 'Smartphone', 'primary_label': 'HW', 'secondary_label': 'UE', 'type': 'HW.UE'}, {'component_id': '3', 'name': 'eWeLink Mobile App', 'primary_label': 'Service', 'secondary_label': 'App', 'type': 'Service.App'}, {'component_id': '4', 'name': 'Coolkit Backend', 'primary_label': 'Service', 'type': 'Service'}, {'component_id': '5', 'name': 'eWeLink Platform', 'primary_label': 'Service', 'type': 'Service'}, {'component_id': '6', 'name': 'Home WiFi Network', 'primary_label': 'Network', 'secondary_label': 'LAN', 'type': 'Network.WiFi'}, {'component_id': '7', 'name': 'SoftAP Network', 'primary_label': 'Network', 'secondary_label': 'LAN', 'type': 'Network.WiFi'}, {'component_id': '8', 'name': 'Internet', 'primary_label': 'Network', 'secondary_label': 'WAN', 'type': 'Network.WAN'}, {'component_id': '9', 'name': 'Cloud Provider', 'primary_label': 'CSP', 'type': 'CSP'}, {'component_id': '10', 'name': 'User', 'primary_label': 'Party', 'type': 'Party.Human'}], 'relationships': [{'source_component_id': '10', 'target_component_id': '3', 'type': 'interacts'}, {'source_component_id': '3', 'target_component_id': '4', 'type': 'uses'}, {'source_component_id': '4', 'target_component_id': '5', 'type': 'uses'}, {'source_component_id': '9', 'target_component_id': '3', 'type': 'provides'}, {'source_component_id': '9', 'target_component_id': '4', 'type': 'provides'}, {'source_component_id': '9', 'target_component_id': '5', 'type': 'provides'}, {'source_component_id': '2', 'target_component_id': '7', 'type': 'connects'}, {'source_component_id': '7', 'target_component_id': '2', 'type': 'connects'}, {'source_component_id': '1', 'target_component_id': '7', 'type': 'connects'}, {'source_component_id': '1', 'target_component_id': '6', 'type': 'connects'}, {'source_component_id': '6', 'target_component_id': '8', 'type': 'connects'}]}} log="\nInvoking: `checkers_validate` with `{'architecture_model': {'nodes': [{'component_id': '1', 'name': 'Sonoff Micro', 'primary_label': 'HW', 'secondary_label': 'IoT', 'type': 'HW.IoT.Device'}, {'component_id': '2', 'name': 'Smartphone', 'primary_label': 'HW', 'secondary_label': 'UE', 'type': 'HW.UE'}, {'component_id': '3', 'name': 'eWeLink Mobile App', 'primary_label': 'Service', 'secondary_label': 'App', 'type': 'Service.App'}, {'component_id': '4', 'name': 'Coolkit Backend', 'primary_label': 'Service', 'type': 'Service'}, {'component_id': '5', 'name': 'eWeLink Platform', 'primary_label': 'Service', 'type': 'Service'}, {'component_id': '6', 'name': 'Home WiFi Network', 'primary_label': 'Network', 'secondary_label': 'LAN', 'type': 'Network.WiFi'}, {'component_id': '7', 'name': 'SoftAP Network', 'primary_label': 'Network', 'secondary_label': 'LAN', 'type': 'Network.WiFi'}, {'component_id': '8', 'name': 'Internet', 'primary_label': 'Network', 'secondary_label': 'WAN', 'type': 'Network.WAN'}, {'component_id': '9', 'name': 'Cloud Provider', 'primary_label': 'CSP', 'type': 'CSP'}, {'component_id': '10', 'name': 'User', 'primary_label': 'Party', 'type': 'Party.Human'}], 'relationships': [{'source_component_id': '10', 'target_component_id': '3', 'type': 'interacts'}, {'source_component_id': '3', 'target_component_id': '4', 'type': 'uses'}, {'source_component_id': '4', 'target_component_id': '5', 'type': 'uses'}, {'source_component_id': '9', 'target_component_id': '3', 'type': 'provides'}, {'source_component_id': '9', 'target_component_id': '4', 'type': 'provides'}, {'source_component_id': '9', 'target_component_id': '5', 'type': 'provides'}, {'source_component_id': '2', 'target_component_id': '7', 'type': 'connects'}, {'source_component_id': '7', 'target_component_id': '2', 'type': 'connects'}, {'source_component_id': '1', 'target_component_id': '7', 'type': 'connects'}, {'source_component_id': '1', 'target_component_id': '6', 'type': 'connects'}, {'source_component_id': '6', 'target_component_id': '8', 'type': 'connects'}]}}`\n\n\n" message_log=[AIMessageChunk(content='', additional_kwargs={}, response_metadata={'model': 'gpt-oss:20b', 'created_at': '2026-02-23T17:55:44.947354619Z', 'done': True, 'done_reason': 'stop', 'total_duration': 24191575843, 'load_duration': 239829365, 'prompt_eval_count': 5203, 'prompt_eval_duration': 315036099, 'eval_count': 2186, 'eval_duration': 22147280883, 'logprobs': None, 'model_name': 'gpt-oss:20b', 'model_provider': 'ollama'}, id='lc_run--019c8ba4-c90f-7901-871c-91d6c485c2cd', tool_calls=[{'name': 'checkers_validate', 'args': {'architecture_model': {'nodes': [{'component_id': '1', 'name': 'Sonoff Micro', 'primary_label': 'HW', 'secondary_label': 'IoT', 'type': 'HW.IoT.Device'}, {'component_id': '2', 'name': 'Smartphone', 'primary_label': 'HW', 'secondary_label': 'UE', 'type': 'HW.UE'}, {'component_id': '3', 'name': 'eWeLink Mobile App', 'primary_label': 'Service', 'secondary_label': 'App', 'type': 'Service.App'}, {'component_id': '4', 'name': 'Coolkit Backend', 'primary_label': 'Service', 'type': 'Service'}, {'component_id': '5', 'name': 'eWeLink Platform', 'primary_label': 'Service', 'type': 'Service'}, {'component_id': '6', 'name': 'Home WiFi Network', 'primary_label': 'Network', 'secondary_label': 'LAN', 'type': 'Network.WiFi'}, {'component_id': '7', 'name': 'SoftAP Network', 'primary_label': 'Network', 'secondary_label': 'LAN', 'type': 'Network.WiFi'}, {'component_id': '8', 'name': 'Internet', 'primary_label': 'Network', 'secondary_label': 'WAN', 'type': 'Network.WAN'}, {'component_id': '9', 'name': 'Cloud Provider', 'primary_label': 'CSP', 'type': 'CSP'}, {'component_id': '10', 'name': 'User', 'primary_label': 'Party', 'type': 'Party.Human'}], 'relationships': [{'source_component_id': '10', 'target_component_id': '3', 'type': 'interacts'}, {'source_component_id': '3', 'target_component_id': '4', 'type': 'uses'}, {'source_component_id': '4', 'target_component_id': '5', 'type': 'uses'}, {'source_component_id': '9', 'target_component_id': '3', 'type': 'provides'}, {'source_component_id': '9', 'target_component_id': '4', 'type': 'provides'}, {'source_component_id': '9', 'target_component_id': '5', 'type': 'provides'}, {'source_component_id': '2', 'target_component_id': '7', 'type': 'connects'}, {'source_component_id': '7', 'target_component_id': '2', 'type': 'connects'}, {'source_component_id': '1', 'target_component_id': '7', 'type': 'connects'}, {'source_component_id': '1', 'target_component_id': '6', 'type': 'connects'}, {'source_component_id': '6', 'target_component_id': '8', 'type': 'connects'}]}}, 'id': '90b0ffda-98b5-4a73-b88c-a140b108d52e', 'type': 'tool_call'}], usage_metadata={'input_tokens': 5203, 'output_tokens': 2186, 'total_tokens': 7389}, tool_call_chunks=[{'name': 'checkers_validate', 'args': '{"architecture_model": {"nodes": [{"component_id": "1", "name": "Sonoff Micro", "primary_label": "HW", "secondary_label": "IoT", "type": "HW.IoT.Device"}, {"component_id": "2", "name": "Smartphone", "primary_label": "HW", "secondary_label": "UE", "type": "HW.UE"}, {"component_id": "3", "name": "eWeLink Mobile App", "primary_label": "Service", "secondary_label": "App", "type": "Service.App"}, {"component_id": "4", "name": "Coolkit Backend", "primary_label": "Service", "type": "Service"}, {"component_id": "5", "name": "eWeLink Platform", "primary_label": "Service", "type": "Service"}, {"component_id": "6", "name": "Home WiFi Network", "primary_label": "Network", "secondary_label": "LAN", "type": "Network.WiFi"}, {"component_id": "7", "name": "SoftAP Network", "primary_label": "Network", "secondary_label": "LAN", "type": "Network.WiFi"}, {"component_id": "8", "name": "Internet", "primary_label": "Network", "secondary_label": "WAN", "type": "Network.WAN"}, {"component_id": "9", "name": "Cloud Provider", "primary_label": "CSP", "type": "CSP"}, {"component_id": "10", "name": "User", "primary_label": "Party", "type": "Party.Human"}], "relationships": [{"source_component_id": "10", "target_component_id": "3", "type": "interacts"}, {"source_component_id": "3", "target_component_id": "4", "type": "uses"}, {"source_component_id": "4", "target_component_id": "5", "type": "uses"}, {"source_component_id": "9", "target_component_id": "3", "type": "provides"}, {"source_component_id": "9", "target_component_id": "4", "type": "provides"}, {"source_component_id": "9", "target_component_id": "5", "type": "provides"}, {"source_component_id": "2", "target_component_id": "7", "type": "connects"}, {"source_component_id": "7", "target_component_id": "2", "type": "connects"}, {"source_component_id": "1", "target_component_id": "7", "type": "connects"}, {"source_component_id": "1", "target_component_id": "6", "type": "connects"}, {"source_component_id": "6", "target_component_id": "8", "type": "connects"}]}}', 'id': '90b0ffda-98b5-4a73-b88c-a140b108d52e', 'index': None, 'type': 'tool_call_chunk'}], chunk_position='last')] tool_call_id='90b0ffda-98b5-4a73-b88c-a140b108d52e'
+  Observation: {'valid': False, 'errors': ["Relationship 0 missing required field 'source'", "Relationship 0 missing required field 'target'", "Relationship 1 missing required field 'source'", "Relationship 1 missing required field 'target'", "Relationship 2 missing required field 'source'", "Relationship 2 missing required field 'target'", "Relationship 3 missing required field 'source'", "Relationship 3 missing required field 'target'", "Relationship 4 missing required field 'source'", "Relationship 4 missin... (truncated)
+--------------------------------------------------------------------------------
+
+
+Tool Usage Summary:
+--------------------------------------------------------------------------------
+Total tool calls: 5
+
+Calls by tool:
+  - checkers_get_database_constraints: 1
+  - catalogs_get_asset_types: 1
+  - catalogs_get_relationship_patterns: 1
+  - catalogs_get_relationship_types: 1
+  - catalogs_assign_labels: 1

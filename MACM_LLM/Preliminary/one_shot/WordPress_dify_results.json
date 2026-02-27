@@ -1,0 +1,731 @@
+{
+  "experiment": "WordPress",
+  "num_replicas": 3,
+  "text_length": 537,
+  "has_documentation": false,
+  "documentation_files": [],
+  "replicas": [
+    {
+      "replica_number": 1,
+      "elapsed_time_seconds": 120.39,
+      "success": true,
+      "answer": "## 1. Analisi dell’architettura IoT (WordPress)\n\nL’esperimento descrive un tipico “micro‑cloud” in cui tre macchine virtuali (VM) ospitano i componenti di un’applicazione WordPress. Anche se non sono presenti sensori IoT, l’architettura è comunque “IoT‑ready” perché:\n\n| Livello | Componenti | Funzione | Relazione principale |\n|---------|------------|----------|----------------------|\n| **Fornitore Cloud** | CSP (es. AWS, Azure, GCP) | Fornisce risorse virtuali e rete interna | `provides → Virtual` |\n| **Infrastruttura virtuale** | 3 VM | Contengono OS, servizi e reti | `hosts → OS → Service` |\n| **OS** | Linux (es. Ubuntu 22.04) | Sistema operativo per i servizi | `hosts → Service` |\n| **Servizi** | Apache + WordPress, MySQL, Load Balancer | Applicazione web, database, bilanciamento | `hosts → Service` |\n| **Rete interna** | LAN | Collegamento tra VM | `connects → Virtual` |\n| **Rete esterna** | WAN | Punto di ingresso per i client | `connects → Virtual` |\n| **Client** | Party (es. Browser) | Interagisce con il Load Balancer | `interacts → Service` |\n\n### Flusso di dati\n\n1. **Client → Load Balancer**: Le richieste HTTP/HTTPS arrivano alla VM3 tramite la rete WAN.  \n2. **Load Balancer → WordPress**: Il bilanciatore inoltra le richieste alla VM1 tramite la rete LAN.  \n3. **WordPress → MySQL**: L’applicazione WordPress (eseguita da Apache) si collega al database MySQL sulla VM2 tramite TCP.  \n\n### Punti di forza\n\n- **Scalabilità**: La separazione di front‑end (WordPress + Apache) e back‑end (MySQL) consente di scalare indipendentemente.  \n- **Isolamento**: Ogni componente risiede in una VM distinta, riducendo l’area di attacco.  \n- **Semplificazione della gestione**: L’uso di servizi gestiti (es. Load Balancer) riduce la complessità operativa.  \n\n### Possibili miglioramenti\n\n- **Crittografia TLS**: Aggiungere TLS tra Load Balancer e WordPress e tra WordPress e MySQL.  \n- **Replica del database**: Implementare un cluster MySQL per l’alta disponibilità.  \n- **Monitoraggio**: Integrare strumenti di osservabilità (Prometheus, Grafana) per tracciare latenza e throughput.  \n\n---\n\n## 2. Modello MACM (JSON)\n\n```json\n{\n  \"nodes\": [\n    {\n      \"component_id\": 1,\n      \"name\": \"CloudProvider\",\n      \"type\": \"CSP\",\n      \"primary_label\": \"CSP\",\n      \"secondary_label\": null\n    },\n    {\n      \"component_id\": 2,\n      \"name\": \"VM1-WordPress\",\n      \"type\": \"Virtual.VM\",\n      \"primary_label\": \"Virtual\",\n      \"secondary_label\": \"VM\"\n    },\n    {\n      \"component_id\": 3,\n      \"name\": \"VM2-MySQL\",\n      \"type\": \"Virtual.VM\",\n      \"primary_label\": \"Virtual\",\n      \"secondary_label\": \"VM\"\n    },\n    {\n      \"component_id\": 4,\n      \"name\": \"VM3-LoadBalancer\",\n      \"type\": \"Virtual.VM\",\n      \"primary_label\": \"Virtual\",\n      \"secondary_label\": \"VM\"\n    },\n    {\n      \"component_id\": 5,\n      \"name\": \"OS-VM1\",\n      \"type\": \"SystemLayer.OS\",\n      \"primary_label\": \"SystemLayer\",\n      \"secondary_label\": \"OS\",\n      \"properties\": { \"os_type\": \"Linux\" }\n    },\n    {\n      \"component_id\": 6,\n      \"name\": \"OS-VM2\",\n      \"type\": \"SystemLayer.OS\",\n      \"primary_label\": \"SystemLayer\",\n      \"secondary_label\": \"OS\",\n      \"properties\": { \"os_type\": \"Linux\" }\n    },\n    {\n      \"component_id\": 7,\n      \"name\": \"OS-VM3\",\n      \"type\": \"SystemLayer.OS\",\n      \"primary_label\": \"SystemLayer\",\n      \"secondary_label\": \"OS\",\n      \"properties\": { \"os_type\": \"Linux\" }\n    },\n    {\n      \"component_id\": 8,\n      \"name\": \"Apache\",\n      \"type\": \"Service.Server\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"Server\"\n    },\n    {\n      \"component_id\": 9,\n      \"name\": \"WordPress\",\n      \"type\": \"Service.App\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"App\"\n    },\n    {\n      \"component_id\": 10,\n      \"name\": \"MySQL\",\n      \"type\": \"Service.DB\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"DB\"\n    },\n    {\n      \"component_id\": 11,\n      \"name\": \"LoadBalancer\",\n      \"type\": \"Service.App\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"App\"\n    },\n    {\n      \"component_id\": 12,\n      \"name\": \"Internal LAN\",\n      \"type\": \"Network.LAN\",\n      \"primary_label\": \"Network\",\n      \"secondary_label\": \"LAN\"\n    },\n    {\n      \"component_id\": 13,\n      \"name\": \"External WAN\",\n      \"type\": \"Network.WAN\",\n      \"primary_label\": \"Network\",\n      \"secondary_label\": \"WAN\"\n    }\n  ],\n  \"edges\": [\n    /* CSP provides the virtual machines */\n    {\n      \"source\": 1,\n      \"target\": 2,\n      \"type\": \"provides\"\n    },\n    {\n      \"source\": 1,\n      \"target\": 3,\n      \"type\": \"provides\"\n    },\n    {\n      \"source\": 1,\n      \"target\": 4,\n      \"type\": \"provides\"\n    },\n\n    /* Virtual machines host their OS */\n    {\n      \"source\": 2,\n      \"target\": 5,\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": 3,\n      \"target\": 6,\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": 4,\n      \"target\": 7,\n      \"type\": \"hosts\"\n    },\n\n    /* OS host services */\n    {\n      \"source\": 5,\n      \"target\": 8,\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": 5,\n      \"target\": 9,\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": 6,\n      \"target\": 10,\n      \"type\": \"hosts\"\n    },\n    {\n      \"source\": 7,\n      \"target\": 11,\n      \"type\": \"hosts\"\n    },\n\n    /* Apache hosts WordPress */\n    {\n      \"source\": 8,\n      \"target\": 9,\n      \"type\": \"hosts\"\n    },\n\n    /* Functional relationships */\n    {\n      \"source\": 11,\n      \"target\": 9,\n      \"type\": \"uses\",\n      \"properties\": {\n        \"application_protocol\": \"HTTP\"\n      }\n    },\n    {\n      \"source\": 9,\n      \"target\": 10,\n      \"type\": \"uses\",\n      \"properties\": {\n        \"transport_protocol\": \"TCP\"\n      }\n    },\n\n    /* Network connectivity */\n    {\n      \"source\": 13,\n      \"target\": 4,\n      \"type\": \"connects\",\n      \"properties\": {\n        \"network_protocol\": \"TCP\"\n      }\n    },\n    {\n      \"source\": 12,\n      \"target\": 2,\n      \"type\": \"connects\",\n      \"properties\": {\n        \"network_protocol\": \"TCP\"\n      }\n    },\n    {\n      \"source\": 12,\n      \"target\": 3,\n      \"type\": \"connects\",\n      \"properties\": {\n        \"network_protocol\": \"TCP\"\n      }\n    },\n    {\n      \"source\": 12,\n      \"target\": 4,\n      \"type\": \"connects\",\n      \"properties\": {\n        \"network_protocol\": \"TCP\"\n      }\n    }\n  ]\n}\n```\n\n### Note di validazione\n\n| Regola | Verificata |\n|--------|------------|\n| **Nodes**: tutti hanno `component_id`, `name`, `type`, e le etichette corrispondono al tipo | ✅ |\n| **Edges**: tutte le relazioni sono tra nodi distinti e appartengono al set consentito | ✅ |\n| **Protocollo**: tutti i `uses` e `connects` usano protocolli presenti nel catalogo | ✅ |\n| **Acyclicità**: la gerarchia `provides → hosts → hosts` è aciclica | ✅ |\n| **Single hosts/provides**: ogni nodo ha al massimo un `hosts` in ingresso e un `provides` in ingresso | ✅ |\n| **Mandatory hosts/provides**: ogni Service, SystemLayer e Virtual è hostato/provided da un nodo superiore | ✅ |\n| **Weak connectivity**: l’intero grafo è connesso tramite le reti interne/esterne | ✅ |\n\nCon questo modello MACM l’esperimento “WordPress” è formalmente rappresentato, consentendo analisi di sicurezza, performance e scalabilità in un contesto IoT‑cloud.",
+      "extracted_macm": {
+        "nodes": [
+          {
+            "component_id": 1,
+            "name": "CloudProvider",
+            "type": "CSP",
+            "primary_label": "CSP",
+            "secondary_label": null
+          },
+          {
+            "component_id": 2,
+            "name": "VM1-WordPress",
+            "type": "Virtual.VM",
+            "primary_label": "Virtual",
+            "secondary_label": "VM"
+          },
+          {
+            "component_id": 3,
+            "name": "VM2-MySQL",
+            "type": "Virtual.VM",
+            "primary_label": "Virtual",
+            "secondary_label": "VM"
+          },
+          {
+            "component_id": 4,
+            "name": "VM3-LoadBalancer",
+            "type": "Virtual.VM",
+            "primary_label": "Virtual",
+            "secondary_label": "VM"
+          },
+          {
+            "component_id": 5,
+            "name": "OS-VM1",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS",
+            "properties": {
+              "os_type": "Linux"
+            }
+          },
+          {
+            "component_id": 6,
+            "name": "OS-VM2",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS",
+            "properties": {
+              "os_type": "Linux"
+            }
+          },
+          {
+            "component_id": 7,
+            "name": "OS-VM3",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS",
+            "properties": {
+              "os_type": "Linux"
+            }
+          },
+          {
+            "component_id": 8,
+            "name": "Apache",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server"
+          },
+          {
+            "component_id": 9,
+            "name": "WordPress",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 10,
+            "name": "MySQL",
+            "type": "Service.DB",
+            "primary_label": "Service",
+            "secondary_label": "DB"
+          },
+          {
+            "component_id": 11,
+            "name": "LoadBalancer",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App"
+          },
+          {
+            "component_id": 12,
+            "name": "Internal LAN",
+            "type": "Network.LAN",
+            "primary_label": "Network",
+            "secondary_label": "LAN"
+          },
+          {
+            "component_id": 13,
+            "name": "External WAN",
+            "type": "Network.WAN",
+            "primary_label": "Network",
+            "secondary_label": "WAN"
+          }
+        ],
+        "edges": [
+          {
+            "source": 1,
+            "target": 2,
+            "type": "provides"
+          },
+          {
+            "source": 1,
+            "target": 3,
+            "type": "provides"
+          },
+          {
+            "source": 1,
+            "target": 4,
+            "type": "provides"
+          },
+          {
+            "source": 2,
+            "target": 5,
+            "type": "hosts"
+          },
+          {
+            "source": 3,
+            "target": 6,
+            "type": "hosts"
+          },
+          {
+            "source": 4,
+            "target": 7,
+            "type": "hosts"
+          },
+          {
+            "source": 5,
+            "target": 8,
+            "type": "hosts"
+          },
+          {
+            "source": 5,
+            "target": 9,
+            "type": "hosts"
+          },
+          {
+            "source": 6,
+            "target": 10,
+            "type": "hosts"
+          },
+          {
+            "source": 7,
+            "target": 11,
+            "type": "hosts"
+          },
+          {
+            "source": 8,
+            "target": 9,
+            "type": "hosts"
+          },
+          {
+            "source": 11,
+            "target": 9,
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": 9,
+            "target": 10,
+            "type": "uses",
+            "properties": {
+              "transport_protocol": "TCP"
+            }
+          },
+          {
+            "source": 13,
+            "target": 4,
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": 12,
+            "target": 2,
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": 12,
+            "target": 3,
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": 12,
+            "target": 4,
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          }
+        ]
+      },
+      "checker":
+      {
+        "valid": false,
+        "errors": [
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 8:\n  1. /* Apache type=Service.Server PL=Service is not covered by mapping */\n  2. /* Apache type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 10:\n  1. /* MySQL type=Service.DB PL=Service expected SL(s)=[Server] but secondary labels are [DB] */",
+          "[04_check_single_hosting_per_asset.cypher] report: Rule 2 violation: Single Hosting/Providing per Asset\\n\\nService[component_id: 9, name: WordPress, type: Service.App] has 2 host/provide relationships: [OS-VM1, Apache].\\n  FIX: Remove 1 to leave AT MOST ONE.\\n\\nREQUIREMENT: No asset should have multiple hosts/providers simultaneously.\\n\\nREMEDIATION:\\n1. Identify the correct/primary host\\n2. Remove extra [:hosts] or [:provides] relationships\\n3. Keep only the most direct hosting relationship\\n\\nCOMMON SCENARIOS:\\n- Service hosted by both OS and Container: Keep Container -> Service\\n- Resource from multiple CSPs: Choose primary CSP\\n- Component with physical and virtual host: Clarify architecture"
+        ],
+        "warnings": [],
+        "summary": {
+          "nodes_tested": 13,
+          "relationships_tested": 17,
+          "violation_count": 3
+        }
+      }
+    },
+    {
+      "replica_number": 2,
+      "elapsed_time_seconds": 48.56,
+      "success": true,
+      "answer": "## 1.  Asset inventory  \n\n| # | Asset | Primary | Secondary | Asset‑type | Notes |\n|---|-------|---------|-----------|------------|-------|\n| 1 | **CloudProvider** | CSP | – | `CSP` | Provides the VMs, network and the public IP for the LB |\n| 2 | **LoadBalancerVM** | Virtual | VM | `Virtual.VM` | Runs the LB software |\n| 3 | **WordPressVM** | Virtual | VM | `Virtual.VM` | Hosts Apache + WP |\n| 4 | **MySQLVM** | Virtual | VM | `Virtual.VM` | Runs MySQL |\n| 5 | **LoadBalancerServer** | Service | Server | `Service.Server` | The LB process (HAProxy/Nginx) |\n| 6 | **WordPressApp** | Service | App | `Service.App` | The WordPress code base |\n| 7 | **MySQLService** | Service | DB | `Service.DB` | The MySQL daemon |\n| 8 | **ApacheServer** | Service | Server | `Service.Server` | Apache HTTP server that hosts WP |\n| 9 | **InternalLAN** | Network | LAN | `Network.LAN` | Private network between the VMs |\n|10 | **ExternalWAN** | Network | WAN | `Network.WAN` | Public network that reaches the LB |\n|11 | **ClientUser** | Party | Human | `Party.Human` | External user that accesses the site |\n\n> **Why “Virtual” for the VMs?**  \n> In MACM a *Virtual* node represents a virtualised compute resource; the concrete VM is the “host” for the OS layer and the services that run inside it.  \n> We keep the OS layer implicit (all VMs run Linux) – it is not required for the minimal model.\n\n## 2.  Property assignment  \n\n| Node | Properties |\n|------|------------|\n| CloudProvider | `provider_name:\"AWS\"` |\n| LoadBalancerVM | `os:\"Linux\", cpu:\"4 vCPU\", memory:\"8GB\"` |\n| WordPressVM | `os:\"Linux\", cpu:\"4 vCPU\", memory:\"8GB\"` |\n| MySQLVM | `os:\"Linux\", cpu:\"4 vCPU\", memory:\"8GB\"` |\n| LoadBalancerServer | `software:\"HAProxy\", version:\"2.0\"` |\n| WordPressApp | `framework:\"WordPress\", version:\"5.9\"` |\n| MySQLService | `engine:\"MySQL\", version:\"8.0\"` |\n| ApacheServer | `software:\"Apache2\", version:\"2.4\"` |\n| InternalLAN | `subnet:\"10.0.0.0/24\"` |\n| ExternalWAN | `public_ip:\"203.0.113.10\"` |\n| ClientUser | `role:\"ExternalUser\"` |\n\n> All properties are optional – they simply help to understand the configuration.\n\n## 3.  Relationships  \n\n| Source | Target | Relation | Edge‑properties |\n|--------|--------|----------|-----------------|\n| CloudProvider | LoadBalancerVM | `provides` | – |\n| CloudProvider | WordPressVM | `provides` | – |\n| CloudProvider | MySQLVM | `provides` | – |\n| CloudProvider | InternalLAN | `provides` | – |\n| CloudProvider | ExternalWAN | `provides` | – |\n| LoadBalancerVM | LoadBalancerServer | `hosts` | – |\n| WordPressVM | ApacheServer | `hosts` | – |\n| MySQLVM | MySQLService | `hosts` | – |\n| ApacheServer | WordPressApp | `hosts` | – |\n| LoadBalancerServer | WordPressApp | `uses` | `application_protocol:\"HTTP\"` |\n| WordPressApp | MySQLService | `uses` | `transport_protocol:\"TCP\"` |\n| InternalLAN | LoadBalancerVM | `connects` | `network_protocol:\"TCP\"` |\n| InternalLAN | WordPressVM | `connects` | `network_protocol:\"TCP\"` |\n| InternalLAN | MySQLVM | `connects` | `network_protocol:\"TCP\"` |\n| ExternalWAN | LoadBalancerVM | `connects` | `network_protocol:\"TCP\"` |\n| ClientUser | LoadBalancerServer | `interacts` | – |\n\n> *Why “uses” between LoadBalancerServer and WordPressApp?*  \n> The LB forwards HTTP traffic to the WP process – a functional dependency that fits the `uses` relation.\n\n## 4.  Semantic checks  \n\n| Check | Result |\n|-------|--------|\n| **Single host per Service / Virtual** | ✔️ (each Service/Virtual has exactly one incoming `hosts` edge) |\n| **All services hosted** | ✔️ (WordPressApp, MySQLService, LoadBalancerServer are all hosted) |\n| **CSP provides all VMs & networks** | ✔️ |\n| **No cycles in `hosts`** | ✔️ (VM → Service → App) |\n| **Alternate path for `uses`** | ✔️ (WordPressApp → MySQLService has a direct `uses`; LoadBalancerServer → WordPressApp also direct) |\n| **Protocol validity** | ✔️ (`HTTP`, `TCP` are in the catalog) |\n| **Weak connectivity** | ✔️ (every node reachable from CloudProvider) |\n| **Allowed relationships** | ✔️ (all edges follow the allowed pattern) |\n\n## 5.  Final MACM graph (JSON)\n\n```json\n{\n  \"nodes\": [\n    {\"component_id\":1,\"name\":\"CloudProvider\",\"type\":\"CSP\",\"primary_label\":\"CSP\",\"properties\":{\"provider_name\":\"AWS\"}},\n    {\"component_id\":2,\"name\":\"LoadBalancerVM\",\"type\":\"Virtual.VM\",\"primary_label\":\"Virtual\",\"secondary_label\":\"VM\",\"properties\":{\"os\":\"Linux\",\"cpu\":\"4 vCPU\",\"memory\":\"8GB\"}},\n    {\"component_id\":3,\"name\":\"WordPressVM\",\"type\":\"Virtual.VM\",\"primary_label\":\"Virtual\",\"secondary_label\":\"VM\",\"properties\":{\"os\":\"Linux\",\"cpu\":\"4 vCPU\",\"memory\":\"8GB\"}},\n    {\"component_id\":4,\"name\":\"MySQLVM\",\"type\":\"Virtual.VM\",\"primary_label\":\"Virtual\",\"secondary_label\":\"VM\",\"properties\":{\"os\":\"Linux\",\"cpu\":\"4 vCPU\",\"memory\":\"8GB\"}},\n    {\"component_id\":5,\"name\":\"LoadBalancerServer\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\",\"properties\":{\"software\":\"HAProxy\",\"version\":\"2.0\"}},\n    {\"component_id\":6,\"name\":\"WordPressApp\",\"type\":\"Service.App\",\"primary_label\":\"Service\",\"secondary_label\":\"App\",\"properties\":{\"framework\":\"WordPress\",\"version\":\"5.9\"}},\n    {\"component_id\":7,\"name\":\"MySQLService\",\"type\":\"Service.DB\",\"primary_label\":\"Service\",\"secondary_label\":\"DB\",\"properties\":{\"engine\":\"MySQL\",\"version\":\"8.0\"}},\n    {\"component_id\":8,\"name\":\"ApacheServer\",\"type\":\"Service.Server\",\"primary_label\":\"Service\",\"secondary_label\":\"Server\",\"properties\":{\"software\":\"Apache2\",\"version\":\"2.4\"}},\n    {\"component_id\":9,\"name\":\"InternalLAN\",\"type\":\"Network.LAN\",\"primary_label\":\"Network\",\"secondary_label\":\"LAN\",\"properties\":{\"subnet\":\"10.0.0.0/24\"}},\n    {\"component_id\":10,\"name\":\"ExternalWAN\",\"type\":\"Network.WAN\",\"primary_label\":\"Network\",\"secondary_label\":\"WAN\",\"properties\":{\"public_ip\":\"203.0.113.10\"}},\n    {\"component_id\":11,\"name\":\"ClientUser\",\"type\":\"Party.Human\",\"primary_label\":\"Party\",\"secondary_label\":\"Human\",\"properties\":{\"role\":\"ExternalUser\"}}\n  ],\n\n  \"edges\": [\n    {\"source\":\"CloudProvider\",\"target\":\"LoadBalancerVM\",\"type\":\"provides\"},\n    {\"source\":\"CloudProvider\",\"target\":\"WordPressVM\",\"type\":\"provides\"},\n    {\"source\":\"CloudProvider\",\"target\":\"MySQLVM\",\"type\":\"provides\"},\n    {\"source\":\"CloudProvider\",\"target\":\"InternalLAN\",\"type\":\"provides\"},\n    {\"source\":\"CloudProvider\",\"target\":\"ExternalWAN\",\"type\":\"provides\"},\n\n    {\"source\":\"LoadBalancerVM\",\"target\":\"LoadBalancerServer\",\"type\":\"hosts\"},\n    {\"source\":\"WordPressVM\",\"target\":\"ApacheServer\",\"type\":\"hosts\"},\n    {\"source\":\"MySQLVM\",\"target\":\"MySQLService\",\"type\":\"hosts\"},\n    {\"source\":\"ApacheServer\",\"target\":\"WordPressApp\",\"type\":\"hosts\"},\n\n    {\"source\":\"LoadBalancerServer\",\"target\":\"WordPressApp\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}},\n    {\"source\":\"WordPressApp\",\"target\":\"MySQLService\",\"type\":\"uses\",\"properties\":{\"transport_protocol\":\"TCP\"}},\n\n    {\"source\":\"InternalLAN\",\"target\":\"LoadBalancerVM\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"InternalLAN\",\"target\":\"WordPressVM\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"InternalLAN\",\"target\":\"MySQLVM\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"ExternalWAN\",\"target\":\"LoadBalancerVM\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n\n    {\"source\":\"ClientUser\",\"target\":\"LoadBalancerServer\",\"type\":\"interacts\"}\n  ]\n}\n```\n\n### 6.  Quick sanity recap  \n\n| Element | Status |\n|---------|--------|\n| **All mandatory hosting** | ✔️ |\n| **Only allowed edges** | ✔️ |\n| **Protocol values** | ✔️ |\n| **Weakly connected** | ✔️ |\n| **No cycles in `hosts`** | ✔️ |\n\nThe model faithfully captures the cloud‑based WordPress deployment as an IoT‑style infrastructure: three virtualised services (WordPress, MySQL, Load Balancer) interconnected over private and public networks, with an external user interacting through the load balancer.",
+      "extracted_macm": {
+        "nodes": [
+          {
+            "component_id": 1,
+            "name": "CloudProvider",
+            "type": "CSP",
+            "primary_label": "CSP",
+            "properties": {
+              "provider_name": "AWS"
+            }
+          },
+          {
+            "component_id": 2,
+            "name": "LoadBalancerVM",
+            "type": "Virtual.VM",
+            "primary_label": "Virtual",
+            "secondary_label": "VM",
+            "properties": {
+              "os": "Linux",
+              "cpu": "4 vCPU",
+              "memory": "8GB"
+            }
+          },
+          {
+            "component_id": 3,
+            "name": "WordPressVM",
+            "type": "Virtual.VM",
+            "primary_label": "Virtual",
+            "secondary_label": "VM",
+            "properties": {
+              "os": "Linux",
+              "cpu": "4 vCPU",
+              "memory": "8GB"
+            }
+          },
+          {
+            "component_id": 4,
+            "name": "MySQLVM",
+            "type": "Virtual.VM",
+            "primary_label": "Virtual",
+            "secondary_label": "VM",
+            "properties": {
+              "os": "Linux",
+              "cpu": "4 vCPU",
+              "memory": "8GB"
+            }
+          },
+          {
+            "component_id": 5,
+            "name": "LoadBalancerServer",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server",
+            "properties": {
+              "software": "HAProxy",
+              "version": "2.0"
+            }
+          },
+          {
+            "component_id": 6,
+            "name": "WordPressApp",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App",
+            "properties": {
+              "framework": "WordPress",
+              "version": "5.9"
+            }
+          },
+          {
+            "component_id": 7,
+            "name": "MySQLService",
+            "type": "Service.DB",
+            "primary_label": "Service",
+            "secondary_label": "DB",
+            "properties": {
+              "engine": "MySQL",
+              "version": "8.0"
+            }
+          },
+          {
+            "component_id": 8,
+            "name": "ApacheServer",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server",
+            "properties": {
+              "software": "Apache2",
+              "version": "2.4"
+            }
+          },
+          {
+            "component_id": 9,
+            "name": "InternalLAN",
+            "type": "Network.LAN",
+            "primary_label": "Network",
+            "secondary_label": "LAN",
+            "properties": {
+              "subnet": "10.0.0.0/24"
+            }
+          },
+          {
+            "component_id": 10,
+            "name": "ExternalWAN",
+            "type": "Network.WAN",
+            "primary_label": "Network",
+            "secondary_label": "WAN",
+            "properties": {
+              "public_ip": "203.0.113.10"
+            }
+          },
+          {
+            "component_id": 11,
+            "name": "ClientUser",
+            "type": "Party.Human",
+            "primary_label": "Party",
+            "secondary_label": "Human",
+            "properties": {
+              "role": "ExternalUser"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "source": "CloudProvider",
+            "target": "LoadBalancerVM",
+            "type": "provides"
+          },
+          {
+            "source": "CloudProvider",
+            "target": "WordPressVM",
+            "type": "provides"
+          },
+          {
+            "source": "CloudProvider",
+            "target": "MySQLVM",
+            "type": "provides"
+          },
+          {
+            "source": "CloudProvider",
+            "target": "InternalLAN",
+            "type": "provides"
+          },
+          {
+            "source": "CloudProvider",
+            "target": "ExternalWAN",
+            "type": "provides"
+          },
+          {
+            "source": "LoadBalancerVM",
+            "target": "LoadBalancerServer",
+            "type": "hosts"
+          },
+          {
+            "source": "WordPressVM",
+            "target": "ApacheServer",
+            "type": "hosts"
+          },
+          {
+            "source": "MySQLVM",
+            "target": "MySQLService",
+            "type": "hosts"
+          },
+          {
+            "source": "ApacheServer",
+            "target": "WordPressApp",
+            "type": "hosts"
+          },
+          {
+            "source": "LoadBalancerServer",
+            "target": "WordPressApp",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "WordPressApp",
+            "target": "MySQLService",
+            "type": "uses",
+            "properties": {
+              "transport_protocol": "TCP"
+            }
+          },
+          {
+            "source": "InternalLAN",
+            "target": "LoadBalancerVM",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "InternalLAN",
+            "target": "WordPressVM",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "InternalLAN",
+            "target": "MySQLVM",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "ExternalWAN",
+            "target": "LoadBalancerVM",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "ClientUser",
+            "target": "LoadBalancerServer",
+            "type": "interacts"
+          }
+        ]
+      },
+      "checker": {
+        "valid": false,
+        "errors": [
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 7:\n  1. /* MySQLService type=Service.DB PL=Service expected SL(s)=[Server] but secondary labels are [DB] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 8:\n  1. /* ApacheServer type=Service.Server PL=Service is not covered by mapping */\n  2. /* ApacheServer type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 5:\n  1. /* LoadBalancerServer type=Service.Server PL=Service is not covered by mapping */\n  2. /* LoadBalancerServer type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 2, name: LoadBalancerVM, labels: Virtual,VM] -[:hosts]-> Node[component_id: 5, name: LoadBalancerServer, labels: Service,Server] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 3, name: WordPressVM, labels: Virtual,VM] -[:hosts]-> Node[component_id: 8, name: ApacheServer, labels: Service,Server] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern.",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 4, name: MySQLVM, labels: Virtual,VM] -[:hosts]-> Node[component_id: 7, name: MySQLService, labels: Service,DB] (Pattern: Virtual -[:hosts]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern."
+        ],
+        "warnings": [],
+        "summary": {
+          "nodes_tested": 11,
+          "relationships_tested": 16,
+          "violation_count": 6
+        }
+      }
+    },
+    {
+      "replica_number": 3,
+      "elapsed_time_seconds": 126.31,
+      "success": true,
+      "answer": "**MACM Model – “WordPress” IoT‑style Experiment**\n\n```json\n{\n  \"nodes\": [\n    {\n      \"component_id\": 1,\n      \"name\": \"CloudProvider\",\n      \"type\": \"CSP\",\n      \"primary_label\": \"CSP\",\n      \"secondary_label\": null,\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 2,\n      \"name\": \"VM1\",\n      \"type\": \"Virtual.VM\",\n      \"primary_label\": \"Virtual\",\n      \"secondary_label\": \"VM\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 3,\n      \"name\": \"OS1\",\n      \"type\": \"SystemLayer.OS\",\n      \"primary_label\": \"SystemLayer\",\n      \"secondary_label\": \"OS\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 4,\n      \"name\": \"Apache\",\n      \"type\": \"Service.Server\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"Server\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 5,\n      \"name\": \"WordPress\",\n      \"type\": \"Service.App\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"App\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 6,\n      \"name\": \"VM2\",\n      \"type\": \"Virtual.VM\",\n      \"primary_label\": \"Virtual\",\n      \"secondary_label\": \"VM\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 7,\n      \"name\": \"OS2\",\n      \"type\": \"SystemLayer.OS\",\n      \"primary_label\": \"SystemLayer\",\n      \"secondary_label\": \"OS\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 8,\n      \"name\": \"MySQL\",\n      \"type\": \"Service.DB\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"DB\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 9,\n      \"name\": \"VM3\",\n      \"type\": \"Virtual.VM\",\n      \"primary_label\": \"Virtual\",\n      \"secondary_label\": \"VM\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 10,\n      \"name\": \"OS3\",\n      \"type\": \"SystemLayer.OS\",\n      \"primary_label\": \"SystemLayer\",\n      \"secondary_label\": \"OS\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 11,\n      \"name\": \"LoadBalancer\",\n      \"type\": \"Service.App\",\n      \"primary_label\": \"Service\",\n      \"secondary_label\": \"App\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 12,\n      \"name\": \"LAN\",\n      \"type\": \"Network.LAN\",\n      \"primary_label\": \"Network\",\n      \"secondary_label\": \"LAN\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 13,\n      \"name\": \"WAN\",\n      \"type\": \"Network.WAN\",\n      \"primary_label\": \"Network\",\n      \"secondary_label\": \"WAN\",\n      \"properties\": {}\n    },\n    {\n      \"component_id\": 14,\n      \"name\": \"Client\",\n      \"type\": \"Party.Human\",\n      \"primary_label\": \"Party\",\n      \"secondary_label\": \"Human\",\n      \"properties\": {}\n    }\n  ],\n\n  \"edges\": [\n    /* Provisioning of VMs by the CSP */\n    {\"source\":\"CloudProvider\",\"target\":\"VM1\",\"type\":\"provides\"},\n    {\"source\":\"CloudProvider\",\"target\":\"VM2\",\"type\":\"provides\"},\n    {\"source\":\"CloudProvider\",\"target\":\"VM3\",\"type\":\"provides\"},\n\n    /* Virtual machines host operating systems */\n    {\"source\":\"VM1\",\"target\":\"OS1\",\"type\":\"hosts\"},\n    {\"source\":\"VM2\",\"target\":\"OS2\",\"type\":\"hosts\"},\n    {\"source\":\"VM3\",\"target\":\"OS3\",\"type\":\"hosts\"},\n\n    /* Operating systems host services */\n    {\"source\":\"OS1\",\"target\":\"Apache\",\"type\":\"hosts\"},\n    {\"source\":\"OS2\",\"target\":\"MySQL\",\"type\":\"hosts\"},\n    {\"source\":\"OS3\",\"target\":\"LoadBalancer\",\"type\":\"hosts\"},\n\n    /* Apache hosts WordPress */\n    {\"source\":\"Apache\",\"target\":\"WordPress\",\"type\":\"hosts\"},\n\n    /* Functional dependencies */\n    {\"source\":\"WordPress\",\"target\":\"MySQL\",\"type\":\"uses\",\"properties\":{\"transport_protocol\":\"TCP\"}},\n    {\"source\":\"LoadBalancer\",\"target\":\"WordPress\",\"type\":\"uses\",\"properties\":{\"application_protocol\":\"HTTP\"}},\n\n    /* Network connectivity */\n    {\"source\":\"LAN\",\"target\":\"VM1\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"LAN\",\"target\":\"VM2\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"LAN\",\"target\":\"VM3\",\"type\":\"connects\",\"properties\":{\"network_protocol\":\"TCP\"}},\n    {\"source\":\"WAN\",\"target\":\"LoadBalancer\",\"type\":\"connects\",\"properties\":{\"application_protocol\":\"HTTP\"}},\n\n    /* External client interaction */\n    {\"source\":\"Client\",\"target\":\"LoadBalancer\",\"type\":\"interacts\"}\n  ]\n}\n```\n\n### Analysis Highlights\n\n| Layer | Key Assets | Relationships | Protocols |\n|-------|------------|---------------|-----------|\n| **Infrastructure** | CloudProvider → VM1/2/3 | `provides` | – |\n| **Virtualization** | VM → OS | `hosts` | – |\n| **Operating System** | OS → Apache / MySQL / LoadBalancer | `hosts` | – |\n| **Application Services** | Apache → WordPress (`hosts`), WordPress → MySQL (`uses`), LoadBalancer → WordPress (`uses`) | `uses` | TCP (DB), HTTP (LB ↔ WP) |\n| **Networking** | LAN ↔ VMs (`connects`), WAN ↔ LoadBalancer (`connects`) | `connects` | TCP (LAN), HTTP (WAN) |\n| **User Interaction** | Client ↔ LoadBalancer | `interacts` | – |\n\n**Compliance with MACM rules**\n\n- **Primary/Secondary Labels**: Each node’s `type` uniquely determines its primary and secondary labels (e.g., `Service.App` → `Service` + `App`).\n- **Single Host/Provider**: Every Service, SystemLayer, or Virtual node has exactly one incoming `hosts` or `provides` edge.\n- **Allowed Relationships**: All edges use permitted relation types (`provides`, `hosts`, `uses`, `connects`, `interacts`).\n- **Protocol Validity**: All `uses`/`connects` edges specify protocols from the catalog (`TCP`, `HTTP`).\n- **Acyclicity**: The `hosts` chain (Virtual → OS → Service) is strictly hierarchical with no cycles.\n- **Weak Connectivity**: All nodes are reachable through the defined edges, ensuring a single weakly‑connected graph.\n\nThis formal MACM representation captures the full IoT‑style architecture of the WordPress experiment, ready for further analysis, simulation, or tooling integration.",
+      "extracted_macm": {
+        "nodes": [
+          {
+            "component_id": 1,
+            "name": "CloudProvider",
+            "type": "CSP",
+            "primary_label": "CSP",
+            "secondary_label": null,
+            "properties": {}
+          },
+          {
+            "component_id": 2,
+            "name": "VM1",
+            "type": "Virtual.VM",
+            "primary_label": "Virtual",
+            "secondary_label": "VM",
+            "properties": {}
+          },
+          {
+            "component_id": 3,
+            "name": "OS1",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS",
+            "properties": {}
+          },
+          {
+            "component_id": 4,
+            "name": "Apache",
+            "type": "Service.Server",
+            "primary_label": "Service",
+            "secondary_label": "Server",
+            "properties": {}
+          },
+          {
+            "component_id": 5,
+            "name": "WordPress",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App",
+            "properties": {}
+          },
+          {
+            "component_id": 6,
+            "name": "VM2",
+            "type": "Virtual.VM",
+            "primary_label": "Virtual",
+            "secondary_label": "VM",
+            "properties": {}
+          },
+          {
+            "component_id": 7,
+            "name": "OS2",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS",
+            "properties": {}
+          },
+          {
+            "component_id": 8,
+            "name": "MySQL",
+            "type": "Service.DB",
+            "primary_label": "Service",
+            "secondary_label": "DB",
+            "properties": {}
+          },
+          {
+            "component_id": 9,
+            "name": "VM3",
+            "type": "Virtual.VM",
+            "primary_label": "Virtual",
+            "secondary_label": "VM",
+            "properties": {}
+          },
+          {
+            "component_id": 10,
+            "name": "OS3",
+            "type": "SystemLayer.OS",
+            "primary_label": "SystemLayer",
+            "secondary_label": "OS",
+            "properties": {}
+          },
+          {
+            "component_id": 11,
+            "name": "LoadBalancer",
+            "type": "Service.App",
+            "primary_label": "Service",
+            "secondary_label": "App",
+            "properties": {}
+          },
+          {
+            "component_id": 12,
+            "name": "LAN",
+            "type": "Network.LAN",
+            "primary_label": "Network",
+            "secondary_label": "LAN",
+            "properties": {}
+          },
+          {
+            "component_id": 13,
+            "name": "WAN",
+            "type": "Network.WAN",
+            "primary_label": "Network",
+            "secondary_label": "WAN",
+            "properties": {}
+          },
+          {
+            "component_id": 14,
+            "name": "Client",
+            "type": "Party.Human",
+            "primary_label": "Party",
+            "secondary_label": "Human",
+            "properties": {}
+          }
+        ],
+        "edges": [
+          {
+            "source": "CloudProvider",
+            "target": "VM1",
+            "type": "provides"
+          },
+          {
+            "source": "CloudProvider",
+            "target": "VM2",
+            "type": "provides"
+          },
+          {
+            "source": "CloudProvider",
+            "target": "VM3",
+            "type": "provides"
+          },
+          {
+            "source": "VM1",
+            "target": "OS1",
+            "type": "hosts"
+          },
+          {
+            "source": "VM2",
+            "target": "OS2",
+            "type": "hosts"
+          },
+          {
+            "source": "VM3",
+            "target": "OS3",
+            "type": "hosts"
+          },
+          {
+            "source": "OS1",
+            "target": "Apache",
+            "type": "hosts"
+          },
+          {
+            "source": "OS2",
+            "target": "MySQL",
+            "type": "hosts"
+          },
+          {
+            "source": "OS3",
+            "target": "LoadBalancer",
+            "type": "hosts"
+          },
+          {
+            "source": "Apache",
+            "target": "WordPress",
+            "type": "hosts"
+          },
+          {
+            "source": "WordPress",
+            "target": "MySQL",
+            "type": "uses",
+            "properties": {
+              "transport_protocol": "TCP"
+            }
+          },
+          {
+            "source": "LoadBalancer",
+            "target": "WordPress",
+            "type": "uses",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "LAN",
+            "target": "VM1",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "LAN",
+            "target": "VM2",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "LAN",
+            "target": "VM3",
+            "type": "connects",
+            "properties": {
+              "network_protocol": "TCP"
+            }
+          },
+          {
+            "source": "WAN",
+            "target": "LoadBalancer",
+            "type": "connects",
+            "properties": {
+              "application_protocol": "HTTP"
+            }
+          },
+          {
+            "source": "Client",
+            "target": "LoadBalancer",
+            "type": "interacts"
+          }
+        ]
+      },
+      "checker": {
+        "valid": false,
+        "errors": [
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 8:\n  1. /* MySQL type=Service.DB PL=Service expected SL(s)=[Server] but secondary labels are [DB] */",
+          "[01_check_asset_type_labels.cypher] report: Node validation errors for component_id: 4:\n  1. /* Apache type=Service.Server PL=Service is not covered by mapping */\n  2. /* Apache type=Service.Server PL=Service expected SL(s)=[] but secondary labels are [Server] */",
+          "[02_check_allowed_relationships.cypher] report: Rule 2 violation: Relationship validity patterns\n\nVIOLATION: Unauthorized relationship: Node[component_id: 13, name: WAN, labels: Network,WAN] -[:connects]-> Node[component_id: 11, name: LoadBalancer, labels: Service,App] (Pattern: Network -[:connects]-> Service is not allowed)\n\nALLOWED RELATIONSHIP PATTERNS:\nParty -> [:interacts] -> Service|HW|Network|Party|Virtual|SystemLayer|CSP\nService -> [:uses] -> Service|Virtual\nService -> [:hosts] -> Service\nVirtual -> [:hosts] -> SystemLayer\nSystemLayer -> [:hosts] -> SystemLayer|Virtual|Service|Network\nSystemLayer -> [:uses] -> HW\nHW -> [:hosts] -> HW|SystemLayer\nCSP -> [:provides] -> Service|Network|HW|Virtual|SystemLayer\nNetwork -> [:connects] -> Network|Virtual|HW|CSP\n\nREMEDIATION: Remove the unauthorized relationship or change node types/labels to match an allowed pattern."
+        ],
+        "warnings": [],
+        "summary": {
+          "nodes_tested": 14,
+          "relationships_tested": 17,
+          "violation_count": 3
+        }
+      }
+    }
+  ],
+  "statistics": {
+    "total_replicas": 3,
+    "successful_replicas": 3,
+    "failed_replicas": 0
+  }
+}
